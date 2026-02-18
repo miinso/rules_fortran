@@ -48,7 +48,12 @@ package(default_visibility = ["//visibility:public"])
 
 filegroup(
     name = "flang-new",
-    srcs = glob(["bin/flang-new*"]),
+    srcs = glob(["bin/flang-new*", "bin/flang*"], allow_empty = True),
+)
+
+filegroup(
+    name = "flang",
+    srcs = glob(["bin/flang*", "bin/flang-new*"], allow_empty = True),
 )
 
 filegroup(
@@ -138,10 +143,14 @@ def _flang_repository_impl(repository_ctx):
             os = os_type,
         )
 
+    strip_prefix = repository_ctx.attr.strip_prefix
+    if not strip_prefix:
+        strip_prefix = "flang+llvm-{}".format(version_no_prefix)
+
     repository_ctx.download_and_extract(
         url = url,
         sha256 = repository_ctx.attr.sha256.get(target_triple, ""),
-        stripPrefix = repository_ctx.attr.strip_prefix,
+        stripPrefix = strip_prefix,
     )
 
     _create_build_file(repository_ctx)
@@ -153,7 +162,7 @@ _flang_repository = repository_rule(
         "repo_owner": attr.string(mandatory = True),
         "repo_name": attr.string(mandatory = True),
         "url_template": attr.string(),
-        "strip_prefix": attr.string(default = "flang+llvm-21.1.3"),
+        "strip_prefix": attr.string(default = ""),
         "sha256": attr.string_dict(default = {}),
     },
 )
@@ -183,6 +192,7 @@ def _flang_host_alias_impl(repository_ctx):
 package(default_visibility = ["//visibility:public"])
 
 alias(name = "flang-new", actual = "@{base_name}_{platform}//:flang-new")
+alias(name = "flang", actual = "@{base_name}_{platform}//:flang")
 alias(name = "llvm-ar", actual = "@{base_name}_{platform}//:llvm-ar")
 alias(name = "clang", actual = "@{base_name}_{platform}//:clang")
 alias(name = "lld", actual = "@{base_name}_{platform}//:lld")
@@ -205,7 +215,8 @@ def flang_register_toolchains(
         repo_owner = "miinso",
         repo_name = "flang-releases",
         url_template = None,
-        sha256 = {}):
+        sha256 = {},
+        strip_prefix = None):
     """Register Flang toolchains for all supported platforms.
 
     Args:
@@ -215,6 +226,7 @@ def flang_register_toolchains(
         repo_name: GitHub repository name (default: "flang-releases")
         url_template: Custom URL template (optional)
         sha256: SHA256 checksums per target triple (optional)
+        strip_prefix: Override extracted root folder (optional)
     """
     for platform_name in PLATFORMS.keys():
         _flang_repository(
@@ -224,6 +236,7 @@ def flang_register_toolchains(
             repo_name = repo_name,
             url_template = url_template,
             sha256 = sha256,
+            strip_prefix = strip_prefix or "",
         )
 
     # Create host alias repo (@flang -> @flang_<host_platform>)
