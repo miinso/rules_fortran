@@ -11,14 +11,16 @@ module(
 )
 
 bazel_dep(name = "rules_cc", version = "0.2.4")
+
 # TODO: drop git_override once libomp lands in BCR
 bazel_dep(name = "libomp", version = "0.0.0")
 git_override(
     module_name = "libomp",
-    remote = "https://github.com/miinso/omp.git",
     commit = "4095ab47928ff185c5651a402416924e74f1feaa",
+    remote = "https://github.com/miinso/omp.git",
 )
-bazel_dep(name = "rules_python", version = "0.40.0")
+
+bazel_dep(name = "rules_python", version = "1.3.0")
 bazel_dep(name = "emsdk", version = "4.0.17")
 # local_path_override(
 #     module_name = "emsdk",
@@ -37,28 +39,28 @@ http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "ht
 # Netlib BLAS (for BLAS examples)
 http_archive(
     name = "blas",
-    url = "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz",
+    build_file = "//blas:blas.BUILD",
     sha256 = "2ca6407a001a474d4d4d35f3a61550156050c48016d949f0da0529c0aa052422",
     strip_prefix = "lapack-3.12.1/BLAS",
-    build_file = "//blas:blas.BUILD",
+    url = "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz",
 )
 
 # Netlib LAPACK (for LAPACK examples)
 http_archive(
     name = "lapack",
-    url = "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz",
+    build_file = "//lapack:lapack.BUILD",
     sha256 = "2ca6407a001a474d4d4d35f3a61550156050c48016d949f0da0529c0aa052422",
     strip_prefix = "lapack-3.12.1",
-    build_file = "//lapack:lapack.BUILD",
+    url = "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz",
 )
 
 # LAPACKE - C interface to LAPACK (for interop examples)
 http_archive(
     name = "lapacke",
-    url = "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz",
+    build_file = "//lapack:lapacke.BUILD",
+    patch_args = ["-p2"],  # strip 2 levels: lapack-3.12.1/LAPACKE/
+    patches = ["//lapack:pr-1164-msvc-complex.patch"],  # discard once they rollout #1164
     sha256 = "2ca6407a001a474d4d4d35f3a61550156050c48016d949f0da0529c0aa052422",
     strip_prefix = "lapack-3.12.1/LAPACKE",
-    build_file = "//lapack:lapacke.BUILD",
-    patches = ["//lapack:pr-1164-msvc-complex.patch"],  # discard once they rollout #1164
-    patch_args = ["-p2"],  # strip 2 levels: lapack-3.12.1/LAPACKE/
+    url = "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz",
 )
