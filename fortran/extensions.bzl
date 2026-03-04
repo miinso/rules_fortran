@@ -131,8 +131,8 @@ _CHECKSUMS = {
 }
 
 _version_tag = tag_class(attrs = {
-    "version": attr.string(default = _DEFAULT_VERSION),
     "sha256": attr.string_dict(default = {}),
+    "version": attr.string(default = _DEFAULT_VERSION),
 })
 
 def _flang_impl(module_ctx):

@@ -169,29 +169,29 @@ fortran_binary = rule(
         )
     """,
     attrs = {
-        "srcs": attr.label_list(
-            allow_files = [".f", ".f90", ".f95", ".f03", ".f08", ".F", ".F90", ".F95", ".F03", ".F08"],
-            doc = "List of Fortran source files to compile.",
-        ),
-        "deps": attr.label_list(
-            providers = [[FortranInfo], [CcInfo]],
-            doc = "List of fortran_library or cc_library targets to link against.",
-        ),
         "copts": attr.string_list(
             doc = "Additional compiler options.",
         ),
         "defines": attr.string_list(
             doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",
         ),
-        "includes": attr.string_list(
-            doc = "List of include directories to add to the compile line.",
+        "deps": attr.label_list(
+            providers = [[FortranInfo], [CcInfo]],
+            doc = "List of fortran_library or cc_library targets to link against.",
         ),
         "hdrs": attr.label_list(
             allow_files = [".inc", ".mod"],
             doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules.",
         ),
+        "includes": attr.string_list(
+            doc = "List of include directories to add to the compile line.",
+        ),
         "linkopts": attr.string_list(
             doc = "Additional linker options.",
+        ),
+        "srcs": attr.label_list(
+            allow_files = [".f", ".f90", ".f95", ".f03", ".f08", ".F", ".F90", ".F95", ".F03", ".F08"],
+            doc = "List of Fortran source files to compile.",
         ),
     },
     executable = True,

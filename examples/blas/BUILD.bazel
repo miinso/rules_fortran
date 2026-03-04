@@ -1,5 +1,5 @@
+load("@rules_fortran//fortran:defs.bzl", "fortran_test")
 load("@rules_python//python:defs.bzl", "py_test")
-load("@rules_fortran//fortran:defs.bzl", "fortran_binary", "fortran_test")
 
 # Example: Simple BLAS DGEMM test
 fortran_test(
@@ -25,7 +25,12 @@ fortran_test(
         ],
         main = "run.py",
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
 ]
 
 # Level 3 tests (input files from @blas external repo)
@@ -44,5 +49,10 @@ fortran_test(
         ],
         main = "run.py",
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
 ]

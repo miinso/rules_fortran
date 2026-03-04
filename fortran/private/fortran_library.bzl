@@ -189,29 +189,29 @@ fortran_library = rule(
         )
     """,
     attrs = {
-        "srcs": attr.label_list(
-            allow_files = [".f", ".f90", ".f95", ".f03", ".f08", ".F", ".F90", ".F95", ".F03", ".F08"],
-            doc = "List of Fortran source files to compile.",
-        ),
-        "deps": attr.label_list(
-            providers = [[FortranInfo], [CcInfo]],
-            doc = "List of fortran_library or cc_library targets that this library depends on.",
-        ),
         "copts": attr.string_list(
             doc = "Additional compiler options to pass to the Fortran compiler.",
         ),
         "defines": attr.string_list(
             doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",
         ),
-        "linkopts": attr.string_list(
-            doc = "Additional linker options (propagated to binaries).",
-        ),
-        "includes": attr.string_list(
-            doc = "List of include directories to add to the compile line.",
+        "deps": attr.label_list(
+            providers = [[FortranInfo], [CcInfo]],
+            doc = "List of fortran_library or cc_library targets that this library depends on.",
         ),
         "hdrs": attr.label_list(
             allow_files = [".inc", ".mod"],
             doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules.",
+        ),
+        "includes": attr.string_list(
+            doc = "List of include directories to add to the compile line.",
+        ),
+        "linkopts": attr.string_list(
+            doc = "Additional linker options (propagated to binaries).",
+        ),
+        "srcs": attr.label_list(
+            allow_files = [".f", ".f90", ".f95", ".f03", ".f08", ".F", ".F90", ".F95", ".F03", ".F08"],
+            doc = "List of Fortran source files to compile.",
         ),
         # https://bazel.build/versions/8.4.0/configure/integrate-cpp
         "_cc_toolchain": attr.label(

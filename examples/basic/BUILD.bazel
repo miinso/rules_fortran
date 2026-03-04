@@ -1,4 +1,4 @@
-load("@rules_fortran//fortran:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
+load("@rules_fortran//fortran:defs.bzl", "fortran_library", "fortran_test")
 
 # Hello World
 fortran_test(

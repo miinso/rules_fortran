@@ -70,6 +70,7 @@ def _includes_appear_in_compile_action_test_impl(ctx):
 
     # Check that includes appear as -I flags (resolved relative to package)
     compile_action = compile_actions[0]
+
     # Full-path behavior matches rules_cc convention, see #13
     assert_argv_contains_prefix(env, compile_action, "-Itest/unit/action_validation/include")
 
@@ -137,6 +138,7 @@ includes_dotdot_rejected_test = analysistest.make(
 def _defines_with_lowercase_extension_rejected_test_impl(ctx):
     """Test that defines with lowercase extension (.f90) is rejected."""
     env = analysistest.begin(ctx)
+
     # verify target *fails* and error message *contains* "uppercase"
     asserts.expect_failure(env, "uppercase")
     return analysistest.end(env)
