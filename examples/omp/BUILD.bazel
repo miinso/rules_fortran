@@ -1,0 +1,10 @@
+load("@rules_fortran//fortran:defs.bzl", "fortran_test")
+
+# TODO: flang toolchain bundles its own libomp; possible conflict with @libomp.
+# works because user deps appear before runtime libs on the link line.
+fortran_test(
+    name = "hello_omp",
+    srcs = ["hello_omp.f90"],
+    copts = ["-fopenmp"],
+    deps = ["@libomp"],
+)
