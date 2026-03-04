@@ -14,6 +14,7 @@ def _fortran_test_impl(ctx):
     link_flags = []
     cc_libraries = []
     cc_objects = []
+    cc_dynamic_libs = []
 
     for dep in ctx.attr.deps:
         # Handle Fortran dependencies
@@ -28,11 +29,19 @@ def _fortran_test_impl(ctx):
             for linker_input in linking_context.linker_inputs.to_list():
                 # Collect libraries
                 for library in linker_input.libraries:
-                    # Prefer PIC static library, fall back to non-PIC
+                    # prefer pic static > static > interface lib > dynamic
                     if library.pic_static_library != None:
                         cc_libraries.append(library.pic_static_library)
                     elif library.static_library != None:
                         cc_libraries.append(library.static_library)
+                    elif library.interface_library != None:  # .lib on windows
+                        cc_libraries.append(library.interface_library)
+                    elif library.dynamic_library != None:
+                        cc_libraries.append(library.dynamic_library)
+
+                    # track DLLs for app-local deployment (windows)
+                    if library.dynamic_library != None:
+                        cc_dynamic_libs.append(library.dynamic_library)
 
                     # Collect object files
                     if hasattr(library, "objects") and library.objects != None:
@@ -118,9 +127,21 @@ def _fortran_test_impl(ctx):
         use_default_shell_env = True,
     )
 
+    # symlink shared libs next to exe for app-local DLL resolution (windows)
+    # mirrors rules_cc _create_dynamic_libraries_copy_actions:
+    # only copy DLLs from different packages to avoid conflicting actions
+    dll_copies = []
+    for dll in cc_dynamic_libs:
+        if ctx.label.package != dll.owner.package or ctx.label.workspace_name != dll.owner.workspace_name:
+            dll_copy = ctx.actions.declare_file(dll.basename)
+            ctx.actions.symlink(output = dll_copy, target_file = dll)
+            dll_copies.append(dll_copy)
+        else:
+            dll_copies.append(dll)
+
     # Create runfiles
     # See: https://bazel.build/extending/rules#runfiles
-    runfiles = ctx.runfiles(files = [executable])
+    runfiles = ctx.runfiles(files = [executable] + dll_copies)
     for dep in ctx.attr.deps:
         runfiles = runfiles.merge(ctx.runfiles(transitive_files = dep[DefaultInfo].default_runfiles.files))
 
