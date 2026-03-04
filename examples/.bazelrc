@@ -1,2 +1,2 @@
-# Import root .bazelrc
-try-import %workspace%/../.bazelrc
+# TODO: suppress portability warnings from external fortran sources (netlib blas/lapack)
+# --per_file_copt only applies to cc_common, not our compile_fortran

@@ -39,12 +39,22 @@ jobs:
     name: ${{ matrix.name }} (Bazel ${{ matrix.bazel }})
     env:
       USE_BAZEL_VERSION: ${{ matrix.bazel }}
+      MSYS_NO_PATHCONV: 1
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+          bazelisk-version: 1.x
       - name: Run unit tests
         run: bazel test //test/... --verbose_failures --test_output=all
       - name: Run examples
-        run: cd examples && bazel test //basic:all //blas:all --verbose_failures --test_output=all
+        # TODO: switch to //... since we don't want to miss any
+        run: cd examples && bazel test //basic:all //blas:all //omp:all --verbose_failures --test_output=all
       - name: Build wasm32 targets
         run: cd examples && bazel build //wasm:hello_wasm //wasm:full_wasm --verbose_failures
       - name: Run wasm32 tests
