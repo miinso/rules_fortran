@@ -40,7 +40,35 @@ wasm_cc_binary(
     tags = ["wasm"],
 )
 
-# Example-3.B full lapacke client, only single for faster build
+# Example-3.B omp hello (wasm32, pthreads)
+fortran_library(
+    name = "omp_hello",
+    srcs = ["omp_hello.f90"],
+    copts = ["-fopenmp", "-pthread"],
+    deps = ["@libomp"],
+    tags = ["wasm"],
+)
+
+cc_binary(
+    name = "omp_hello_cc",
+    srcs = [],
+    linkopts = ["-pthread"],
+    deps = [":omp_hello"],
+    tags = ["wasm"],
+)
+
+wasm_cc_binary(
+    name = "omp_hello_wasm",
+    cc_target = ":omp_hello_cc",
+    outputs = [
+        "omp_hello_cc.js",
+        "omp_hello_cc.wasm",
+    ],
+    threads = "emscripten",
+    tags = ["wasm"],
+)
+
+# Example-3.C full lapacke client, only single for faster build
 cc_binary(
     name = "full",
     srcs = [
