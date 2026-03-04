@@ -138,10 +138,16 @@ def _flang_repository_impl(repository_ctx):
             os = os_type,
         )
 
+    strip_prefix = "flang+llvm-{}".format(version_no_prefix)
+
+    sha256 = repository_ctx.attr.sha256.get(target_triple, "")
+    if not sha256:
+        fail("no sha256 for %s @ %s -- add to _CHECKSUMS or provide via tag" % (target_triple, version))
+
     repository_ctx.download_and_extract(
         url = url,
-        sha256 = repository_ctx.attr.sha256.get(target_triple, ""),
-        stripPrefix = repository_ctx.attr.strip_prefix,
+        sha256 = sha256,
+        stripPrefix = strip_prefix,
     )
 
     _create_build_file(repository_ctx)
@@ -153,7 +159,6 @@ _flang_repository = repository_rule(
         "repo_owner": attr.string(mandatory = True),
         "repo_name": attr.string(mandatory = True),
         "url_template": attr.string(),
-        "strip_prefix": attr.string(default = "flang+llvm-21.1.3"),
         "sha256": attr.string_dict(default = {}),
     },
 )
@@ -201,7 +206,7 @@ _flang_host_alias = repository_rule(
 
 def flang_register_toolchains(
         name = "flang",
-        version = "v21.1.3",
+        version = "v21.1.8",
         repo_owner = "miinso",
         repo_name = "flang-releases",
         url_template = None,
