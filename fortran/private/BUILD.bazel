@@ -15,7 +15,7 @@ bzl_library(
     deps = [
         ":providers",
         "@rules_cc//cc:find_cc_toolchain_bzl",  # for stardoc
-        "@rules_cc//cc/common:common",  # for stardoc
+        "@rules_cc//cc/common",  # for stardoc
     ],
 )
 
@@ -30,6 +30,6 @@ bzl_library(
         ":compile",
         ":providers",
         "@rules_cc//cc:find_cc_toolchain_bzl",  # for stardoc
-        "@rules_cc//cc/common:common",  # for stardoc
+        "@rules_cc//cc/common",  # for stardoc
     ],
 )

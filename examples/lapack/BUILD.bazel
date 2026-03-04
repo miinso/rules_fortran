@@ -1,4 +1,4 @@
-load("@rules_fortran//fortran:defs.bzl", "fortran_binary", "fortran_test")
+load("@rules_fortran//fortran:defs.bzl", "fortran_test")
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 
 # simple DGESV run
@@ -23,8 +23,8 @@ fortran_test(
     srcs = ["mixed.f90"],
     copts = ["-O2"],
     deps = [
-        "@lapack//:single",
         "@lapack//:double",
+        "@lapack//:single",
     ],
 )
 
@@ -50,7 +50,12 @@ fortran_test(
         main = "run.py",
         tags = ["lapack"],
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
 ]
 
 # Mixed precision LIN Tests
@@ -64,8 +69,8 @@ py_test(
         "dstest.out",
     ],
     data = [
-        "@lapack//:xlintstds",
         "@lapack//:TESTING/dstest.in",
+        "@lapack//:xlintstds",
     ],
     main = "run.py",
     tags = ["lapack"],
@@ -81,8 +86,8 @@ py_test(
         "zctest.out",
     ],
     data = [
-        "@lapack//:xlintstzc",
         "@lapack//:TESTING/zctest.in",
+        "@lapack//:xlintstzc",
     ],
     main = "run.py",
     tags = ["lapack"],
@@ -106,7 +111,12 @@ py_test(
         main = "run.py",
         tags = ["lapack"],
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
 ]
 
 # DMD EIG Tests
@@ -127,15 +137,42 @@ py_test(
         main = "run.py",
         tags = ["lapack"],
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
 ]
 
 # EIG Tests - Multiple input files per binary
 # Common EIG input files (same for all precisions)
-EIG_COMMON_INPUTS = ["nep", "sep", "se2", "svd", "glm", "gqr", "gsv", "csd", "lse"]
+EIG_COMMON_INPUTS = [
+    "nep",
+    "sep",
+    "se2",
+    "svd",
+    "glm",
+    "gqr",
+    "gsv",
+    "csd",
+    "lse",
+]
 
 # Precision-specific EIG input files
-EIG_PRECISION_INPUTS = ["ec", "ed", "gg", "gd", "sb", "sg", "bb", "bak", "bal", "gbak", "gbal"]
+EIG_PRECISION_INPUTS = [
+    "ec",
+    "ed",
+    "gg",
+    "gd",
+    "sb",
+    "sg",
+    "bb",
+    "bak",
+    "bal",
+    "gbak",
+    "gbal",
+]
 
 [
     py_test(
@@ -152,9 +189,17 @@ EIG_PRECISION_INPUTS = ["ec", "ed", "gg", "gd", "sb", "sg", "bb", "bak", "bal", 
             "@lapack//:TESTING/%s.in" % test_name,
         ],
         main = "run.py",
-        tags = ["lapack", "eig"],
+        tags = [
+            "eig",
+            "lapack",
+        ],
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
     for test_name in EIG_COMMON_INPUTS
 ]
 
@@ -173,9 +218,17 @@ EIG_PRECISION_INPUTS = ["ec", "ed", "gg", "gd", "sb", "sg", "bb", "bak", "bal", 
             "@lapack//:TESTING/%s%s.in" % (prefix, test_name),
         ],
         main = "run.py",
-        tags = ["lapack", "eig"],
+        tags = [
+            "eig",
+            "lapack",
+        ],
     )
-    for prefix in ["s", "d", "c", "z"]
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
     for test_name in EIG_PRECISION_INPUTS
 ]
 
@@ -248,8 +301,21 @@ TEST_INPUTS = [
     "@lapack//:TESTING/lse.in",
 ] + [
     "@lapack//:TESTING/%s%s.in" % (p, t)
-    for p in ["s", "d", "c", "z"]
-    for t in ["ec", "ed", "gg", "gd", "sb", "sg", "bb"]
+    for p in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
+    for t in [
+        "ec",
+        "ed",
+        "gg",
+        "gd",
+        "sb",
+        "sg",
+        "bb",
+    ]
 ]
 
 py_binary(

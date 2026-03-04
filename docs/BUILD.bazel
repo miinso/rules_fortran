@@ -4,7 +4,7 @@ load("@stardoc//stardoc:stardoc.bzl", "stardoc")
 
 stardoc(
     name = "rules_doc",
-    input = "//fortran:defs.bzl",
     out = "rules.md",
+    input = "//fortran:defs.bzl",
     deps = ["//fortran:defs"],
 )

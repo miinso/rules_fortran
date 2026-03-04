@@ -132,12 +132,23 @@ fortran_toolchain = rule(
         )
     """,
     attrs = {
+        "archiver": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+            executable = True,
+            cfg = "exec",
+            doc = "The archiver executable (typically 'ar').",
+        ),
         "compiler": attr.label(
             mandatory = True,
             allow_single_file = True,
             executable = True,
             cfg = "exec",
             doc = "The Fortran compiler executable.",
+        ),
+        "compiler_flags": attr.string_list(
+            default = [],
+            doc = "Default flags to pass to the compiler.",
         ),
         "linker": attr.label(
             mandatory = True,
@@ -146,20 +157,13 @@ fortran_toolchain = rule(
             cfg = "exec",
             doc = "The linker executable.",
         ),
-        "archiver": attr.label(
-            mandatory = True,
-            allow_single_file = True,
-            executable = True,
-            cfg = "exec",
-            doc = "The archiver executable (typically 'ar').",
-        ),
-        "compiler_flags": attr.string_list(
-            default = [],
-            doc = "Default flags to pass to the compiler.",
-        ),
         "linker_flags": attr.string_list(
             default = [],
             doc = "Default flags to pass to the linker.",
+        ),
+        "module_flag_format": attr.string(
+            default = "-J{}",
+            doc = "Format string for module path flag. Use {} as placeholder for path.",
         ),
         "preprocessor_flag": attr.string(
             default = "-cpp",
@@ -169,21 +173,17 @@ fortran_toolchain = rule(
             default = [],
             doc = "Default preprocessor flags (e.g., ['-D_OPENMP', '-DUSE_MPI']).",
         ),
+        "runtime_libraries": attr.label_list(
+            default = [],
+            doc = "flang/clang runtime libraries (flang_rt, clang_rt) for C/Fortran interop.",
+        ),
         "supports_module_path": attr.bool(
             default = True,
             doc = "Whether the compiler supports specifying module output directory.",
         ),
-        "module_flag_format": attr.string(
-            default = "-J{}",
-            doc = "Format string for module path flag. Use {} as placeholder for path.",
-        ),
         "tool_deps": attr.label_list(
             allow_files = True,
             doc = "Additional tool dependencies (e.g., runtime libraries).",
-        ),
-        "runtime_libraries": attr.label_list(
-            default = [],
-            doc = "flang/clang runtime libraries (flang_rt, clang_rt) for C/Fortran interop.",
         ),
         "_cc_toolchain": attr.label(
             default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),

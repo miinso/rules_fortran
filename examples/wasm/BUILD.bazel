@@ -25,8 +25,8 @@ fortran_library(
 cc_binary(
     name = "hello_cc",
     srcs = [],  # look ma no source!
-    deps = [":hello"],
     tags = ["wasm"],
+    deps = [":hello"],
 )
 
 # produce final wasm output
@@ -44,17 +44,20 @@ wasm_cc_binary(
 fortran_library(
     name = "omp_hello",
     srcs = ["omp_hello.f90"],
-    copts = ["-fopenmp", "-pthread"],
-    deps = ["@libomp"],
+    copts = [
+        "-fopenmp",
+        "-pthread",
+    ],
     tags = ["wasm"],
+    deps = ["@libomp"],
 )
 
 cc_binary(
     name = "omp_hello_cc",
     srcs = [],
     linkopts = ["-pthread"],
-    deps = [":omp_hello"],
     tags = ["wasm"],
+    deps = [":omp_hello"],
 )
 
 wasm_cc_binary(
@@ -64,8 +67,8 @@ wasm_cc_binary(
         "omp_hello_cc.js",
         "omp_hello_cc.wasm",
     ],
-    threads = "emscripten",
     tags = ["wasm"],
+    threads = "emscripten",
 )
 
 # Example-3.C full lapacke client, only single for faster build
@@ -74,12 +77,12 @@ cc_binary(
     srcs = [
         "full.c",
     ],
+    tags = ["wasm"],
     deps = [
         "@blas//:single",
         "@lapack//:single",
         "@lapacke//:single",
     ],
-    tags = ["wasm"],
 )
 
 wasm_cc_binary(

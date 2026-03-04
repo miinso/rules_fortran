@@ -2,10 +2,10 @@
 
 # Supported platforms and their target triples
 PLATFORMS = {
-    "linux_x86_64": "x86_64-unknown-linux-gnu",
     "linux_aarch64": "aarch64-unknown-linux-gnu",
-    "macos_x86_64": "x86_64-apple-darwin",
+    "linux_x86_64": "x86_64-unknown-linux-gnu",
     "macos_aarch64": "arm64-apple-darwin",
+    "macos_x86_64": "x86_64-apple-darwin",
     "windows_x86_64": "x86_64-pc-windows-msvc",
 }
 
@@ -15,11 +15,11 @@ def _get_platform_info(repository_ctx):
     arch = repository_ctx.os.arch.lower()
 
     arch_map = {
-        "amd64": "x86_64",
-        "x86_64": "x86_64",
-        "x64": "x86_64",
         "aarch64": "arm64",
+        "amd64": "x86_64",
         "arm64": "arm64",
+        "x64": "x86_64",
+        "x86_64": "x86_64",
     }
     normalized_arch = arch_map.get(arch, arch)
 
@@ -155,11 +155,11 @@ def _flang_repository_impl(repository_ctx):
 _flang_repository = repository_rule(
     implementation = _flang_repository_impl,
     attrs = {
-        "version": attr.string(mandatory = True),
-        "repo_owner": attr.string(mandatory = True),
         "repo_name": attr.string(mandatory = True),
-        "url_template": attr.string(),
+        "repo_owner": attr.string(mandatory = True),
         "sha256": attr.string_dict(default = {}),
+        "url_template": attr.string(),
+        "version": attr.string(mandatory = True),
     },
 )
 
