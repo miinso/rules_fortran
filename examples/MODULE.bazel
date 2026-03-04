@@ -11,6 +11,13 @@ module(
 )
 
 bazel_dep(name = "rules_cc", version = "0.2.4")
+# TODO: drop git_override once libomp lands in BCR
+bazel_dep(name = "libomp", version = "0.0.0")
+git_override(
+    module_name = "libomp",
+    remote = "https://github.com/miinso/omp.git",
+    commit = "4095ab47928ff185c5651a402416924e74f1feaa",
+)
 bazel_dep(name = "rules_python", version = "0.40.0")
 bazel_dep(name = "emsdk", version = "4.0.17")
 # local_path_override(
