@@ -63,6 +63,8 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    env:
+      USE_BAZEL_VERSION: 8.x
     steps:
       - uses: actions/checkout@v4
       - uses: bazel-contrib/setup-bazel@0.14.0
