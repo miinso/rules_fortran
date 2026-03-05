@@ -1,29 +1,24 @@
-! solve Ax = b using Cholesky decomposition (DPOTRF + DPOTRS)
-! A = [4 2 1; 2 5 3; 1 3 6] (SPD), x = [1 2 3]
+! solve Ax = b using DGESV (LU factorization)
+! A = [2 1 -1; -3 -1 2; -2 1 2], x = [1 2 3]
 
 program main
     implicit none
     integer, parameter :: N = 3, NRHS = 1
-    integer :: INFO, i
+    integer :: INFO, IPIV(N), i
     double precision :: A(N,N), B(N,NRHS), x_true(N), max_error
 
-    A = reshape([4d0, 2d0, 1d0, &
-                 2d0, 5d0, 3d0, &
-                 1d0, 3d0, 6d0], [N, N])
+    A = reshape([2d0, -3d0, -2d0, &
+                 1d0, -1d0,  1d0, &
+                -1d0,  2d0,  2d0], [N, N])
 
     ! b = A * [1, 2, 3]'
-    B(:,1) = [11d0, 21d0, 25d0]
+    B(:,1) = [1d0, 1d0, 6d0]
     x_true = [1d0, 2d0, 3d0]
 
-    call DPOTRF('L', N, A, N, INFO)
-    if (INFO /= 0) then
-        print *, "DPOTRF failed, INFO =", INFO
-        stop 1
-    end if
+    call DGESV(N, NRHS, A, N, IPIV, B, N, INFO)
 
-    call DPOTRS('L', N, NRHS, A, N, B, N, INFO)
     if (INFO /= 0) then
-        print *, "DPOTRS failed, INFO =", INFO
+        print *, "DGESV failed, INFO =", INFO
         stop 1
     end if
 

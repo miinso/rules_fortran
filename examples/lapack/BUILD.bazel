@@ -3,8 +3,8 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 
 # simple DGESV run
 fortran_test(
-    name = "main",
-    srcs = ["main.f90"],
+    name = "lu",
+    srcs = ["lu.f90"],
     copts = ["-O2"],
     deps = ["@lapack//:double"],
 )
@@ -15,6 +15,14 @@ fortran_test(
     srcs = ["chol.f90"],
     copts = ["-O2"],
     deps = ["@lapack"],
+)
+
+# SVD decomposition demo
+fortran_test(
+    name = "svd",
+    srcs = ["svd.f90"],
+    copts = ["-O2"],
+    deps = ["@lapack//:double"],
 )
 
 # Selective compilation

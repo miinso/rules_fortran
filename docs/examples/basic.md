@@ -2,6 +2,8 @@
 
 Source: [`examples/basic/`](https://github.com/miinso/rules_fortran/tree/master/examples/basic)
 
+Hello world, libraries with module dependencies, and include files.
+
 ## 1.A. Hello World
 
 ```
@@ -13,72 +15,72 @@ basic/
 <<< @/../examples/basic/hello.f90{fortran}
 
 ```starlark
-load("@rules_fortran//fortran:defs.bzl", "fortran_binary")
-
-fortran_binary(
+fortran_test(
     name = "hello",
     srcs = ["hello.f90"],
 )
 ```
 
 ```bash
-bazel run //basic:hello
+bazel test //basic:hello --test_output=all
 ```
 
 ```
 Hello from Fortran with rules_fortran!
 ```
 
-## 1.B. Binary with Dependency
+## 1.B. Libraries and Modules
 
 ```
 basic/
 ├── BUILD.bazel
 ├── main.f90
-└── math.f90
+├── math_module.f90
+├── statistics.f90
+└── io_module.f90
 ```
 
-```fortran
-! math.f90
-module math
-    implicit none
-contains
-    function square(x) result(y)
-        real, intent(in) :: x
-        real :: y
-        y = x * x
-    end function square
-end module math
-```
+<<< @/../examples/basic/math_module.f90{fortran}
 
-```fortran
-! main.f90
-program main
-    use math
-    implicit none
-    print *, "5^2 =", square(5.0)
-end program main
-```
+<<< @/../examples/basic/statistics.f90{fortran}
+
+<<< @/../examples/basic/main.f90{fortran}
 
 ```starlark
 fortran_library(
-    name = "math",
-    srcs = ["math.f90"],
+    name = "math_lib",
+    srcs = [
+        "math_module.f90",
+        "statistics.f90",
+    ],
 )
 
-fortran_binary(
-    name = "main",
+fortran_library(
+    name = "io_lib",
+    srcs = ["io_module.f90"],
+)
+
+fortran_test(
+    name = "app",
     srcs = ["main.f90"],
-    deps = [":math"],
+    deps = [
+        ":io_lib",
+        ":math_lib",
+    ],
 )
 ```
 
 ```bash
-bazel run //basic:main
+bazel test //basic:app --test_output=all
 ```
 
 ```
-5^2 = 25.0
+ Factorial of 5 = 120
+ Fibonacci of 5 = 5
+ GCD(48, 18) = 6
+ Mean: 5.5
+ Std Dev: 2.8722813
+ Scientific app completed!
 ```
 
 ## 1.C. Include Files
@@ -96,7 +98,7 @@ basic/
 <<< @/../examples/basic/use_include.f90{fortran}
 
 ```starlark
-fortran_binary(
+fortran_test(
     name = "constants",
     srcs = ["use_include.f90"],
     hdrs = ["include/constants.inc"],
@@ -105,7 +107,7 @@ fortran_binary(
 ```
 
 ```bash
-bazel run //basic:constants
+bazel test //basic:constants --test_output=all
 ```
 
 ```

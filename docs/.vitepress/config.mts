@@ -55,7 +55,8 @@ export default defineConfig({
         items: [
           { text: '1. Basic', link: '/examples/basic' },
           { text: '2. Interop', link: '/examples/interop' },
-          { text: '3. WebAssembly', link: '/examples/wasm' }
+          { text: '3. WebAssembly', link: '/examples/wasm' },
+          { text: '4. OpenMP', link: '/examples/omp' }
         ]
       },
       {

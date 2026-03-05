@@ -1,86 +1,40 @@
-# Reference BLAS Example
+# Reference BLAS
 
-This example demonstrates how to use the reference BLAS (Basic Linear Algebra Subprograms) library with Fortran in Bazel.
+DGEMM (matrix multiplication) example + full BLAS Level 2/3 test suite.
 
-## Contents
-
-- **`main.f90`** - Simple DGEMM (matrix multiplication) example
-- **`BUILD.bazel`** - Bazel build configuration
-- **`run.py`** - Executable runner for BLAS tests
-- **`data/`** - Test input files for BLAS Level 2 and Level 3 tests
-
-## Building and Running
-
-### Build the main example:
-```bash
-bazel build //examples/refblas:main
+```
+bazel test //blas:all --test_output=all
 ```
 
-### Run the main example:
-```bash
-bazel run //examples/refblas:main
+### DGEMM output
+
+```
+ BLAS DGEMM Test: C = alpha*A*B + beta*C
+
+ Matrix A:
+    1.00    2.00    3.00
+    4.00    5.00    6.00
+    7.00    8.00    9.00
+
+ Matrix B:
+    1.00    0.00    0.00
+    0.00    1.00    0.00
+    0.00    0.00    1.00
+
+ Result C = A*B:
+    1.00    2.00    3.00
+    4.00    5.00    6.00
+    7.00    8.00    9.00
+
+ Test PASSED: C = A*I = A
 ```
 
-### Run BLAS tests:
+### Netlib test suite
 
-All tests are cross-platform and work on Windows, Linux, and macOS:
+Full [BLAS test suite from Netlib](https://www.netlib.org/blas/), built from source, across all four precisions (s/d/c/z):
 
-```bash
-# Run all BLAS Level 2 and Level 3 tests
-bazel test //examples/refblas:all
+Level 1 (vector): `sblat1`, `dblat1`, `cblat1`, `zblat1` (in `@blas`)
+Level 2 (matrix-vector): `sblat2`, `dblat2`, `cblat2`, `zblat2`
+Level 3 (matrix-matrix): `sblat3`, `dblat3`, `cblat3`, `zblat3`
 
-# Run specific test (e.g., double precision Level 2)
-bazel test //examples/refblas:dblat2
-
-# Run with verbose output
-bazel test //examples/refblas:all --test_output=all
-```
-
-## Available Tests
-
-The example includes BLAS tests for all precision types:
-
-**Level 2 Tests (matrix-vector operations):**
-- `sblat2` - Single precision real
-- `dblat2` - Double precision real
-- `cblat2` - Single precision complex
-- `zblat2` - Double precision complex
-
-**Level 3 Tests (matrix-matrix operations):**
-- `sblat3` - Single precision real
-- `dblat3` - Double precision real
-- `cblat3` - Single precision complex
-- `zblat3` - Double precision complex
-
-## Dependencies
-
-The BLAS library is fetched automatically from the reference implementation via the `@blas` repository defined in `blas.BUILD`.
-
-## Using BLAS in Your Code
-
-To use BLAS in your Fortran code, add it to your target's `deps`:
-
-```starlark
-fortran_binary(
-    name = "my_app",
-    srcs = ["my_app.f90"],
-    deps = ["@blas"],  # Include all BLAS routines
-)
-```
-
-Or depend on specific precision libraries:
-
-```starlark
-fortran_binary(
-    name = "my_app",
-    srcs = ["my_app.f90"],
-    deps = [
-        "@blas//:double",   # Double precision routines only
-        # "@blas//:single",   # Single precision
-        # "@blas//:complex",  # Complex precision
-        # "@blas//:complex16", # Double complex precision
-    ],
-)
-```
-
-The `@blas` target provides all BLAS routines across all precisions, while the precision-specific targets (`:double`, `:single`, etc.) provide only the routines for that precision type.
+See `main.m` for MATLAB equivalent.

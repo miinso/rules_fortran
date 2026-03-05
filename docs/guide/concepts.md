@@ -1,5 +1,13 @@
 # Fortran Build Concepts
 
+## Why This Exists
+
+Fortran is the backbone of high-performance numerical computing -- LAPACK, BLAS, weather models, physics simulations. Integrating it into modern build systems has been painful.
+
+Existing approaches tend to be Linux-only, GCC-based, or shell out to a system-installed compiler. The Bazel Central Registry has open requests for BLAS and LAPACK, blocked on the lack of a Fortran ruleset that can build them from source.
+
+rules_fortran ships hermetic LLVM Flang toolchains for 5 platforms, handles module dependency ordering, and provides `CcInfo` for bidirectional C/Fortran interop.
+
 ## Fortran vs C/C++
 
 Fortran has different compilation semantics than C/C++, which affects how build systems must handle it.

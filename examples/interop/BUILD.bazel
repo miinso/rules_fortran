@@ -47,8 +47,8 @@ cc_test(
         "full.c",
     ],
     deps = [
-        "@blas",
-        "@lapack",
-        "@lapacke",
+        "@blas//:single",
+        "@lapack//:single",
+        "@lapacke//:single",
     ],
 )
