@@ -21,6 +21,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      USE_BAZEL_VERSION: 8.x
     steps:
       - uses: actions/checkout@v4
 
