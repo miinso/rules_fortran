@@ -14,14 +14,14 @@ bazel_dep(name = "rules_fortran")
 git_override(
     module_name = "rules_fortran",
     remote = "https://github.com/miinso/rules_fortran.git",
-    commit = "2c5e681d8b4c2d6f7e2c84443fd4792ef60c7690",
+    commit = "76c948c52ee3a735eb4670da885ef3907281c952",
 )
 ```
 
 The Flang toolchain registers automatically. No additional setup required.
 
 ::: info Flang Toolchain
-rules_fortran downloads prebuilt LLVM Flang binaries from [miinso/flang-releases](https://github.com/miinso/flang-releases). It does not use any system-installed Fortran compiler.
+rules_fortran downloads prebuilt LLVM Flang binaries from [miinso/flang-releases](https://github.com/miinso/flang-releases). It does not use any system-installed Fortran compiler. No `apt install gfortran`, no "works on my machine."
 :::
 
 ## Supported Platforms

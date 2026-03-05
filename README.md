@@ -1,24 +1,23 @@
 # rules_fortran
 
-Fortran rules for Bazel.
+Fortran rules for Bazel using LLVM Flang.
 
-[Documentation](https://miinso.github.io/rules_fortran/)
+Builds libraries, binaries, and tests. Cross-compiles to WebAssembly.
+Works with C/Fortran interop, from-source BLAS/LAPACK, and OpenMP.
 
-## Supported Platforms
+[Documentation](https://miinso.github.io/rules_fortran/) -- [Examples](https://github.com/miinso/rules_fortran/tree/master/examples)
 
-| Host | Target |
-|------|--------|
-| Linux x86_64 | x86_64-unknown-linux-gnu |
-| Linux ARM64 | aarch64-unknown-linux-gnu |
-| macOS x86_64 | x86_64-apple-darwin |
-| macOS ARM64 | arm64-apple-darwin |
-| Windows x86_64 | x86_64-pc-windows-msvc |
+## Platforms
 
-All platforms can cross-compile to `wasm32-unknown-emscripten`.
+| Host | Native target | Cross-compilation |
+|------|---------------|-------------------|
+| Linux x86_64 | x86_64-unknown-linux-gnu | wasm32-unknown-emscripten |
+| Linux ARM64 | aarch64-unknown-linux-gnu | wasm32-unknown-emscripten |
+| macOS x86_64 | x86_64-apple-darwin | wasm32-unknown-emscripten |
+| macOS ARM64 | arm64-apple-darwin | wasm32-unknown-emscripten |
+| Windows x86_64 | x86_64-pc-windows-msvc | wasm32-unknown-emscripten |
 
 ## Setup
-
-### Bzlmod (recommended)
 
 Add to your `MODULE.bazel`:
 
@@ -30,10 +29,6 @@ git_override(
     commit = "...",  # see releases
 )
 ```
-
-### WORKSPACE
-
-Not supported. Use Bzlmod.
 
 ## Usage
 
@@ -58,27 +53,34 @@ fortran_test(
 )
 ```
 
-### C/Fortran Interop
+### C interop
 
-Fortran and C targets can depend on each other:
+Fortran and C targets can depend on each other directly:
 
 ```starlark
-load("@rules_fortran//fortran:defs.bzl", "fortran_library")
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary")
-
-# Fortran calls C
-cc_library(name = "c_math", srcs = ["c_math.c"])
-fortran_binary(
-    name = "fortran_calls_c",
-    srcs = ["main.f90"],
-    deps = [":c_math"],
-)
-
-# C calls Fortran
 fortran_library(name = "fortran_math", srcs = ["math.f90"])
-cc_binary(
-    name = "c_calls_fortran",
-    srcs = ["main.c"],
-    deps = [":fortran_math"],
+cc_binary(name = "app", srcs = ["main.c"], deps = [":fortran_math"])
+```
+
+### OpenMP
+
+```starlark
+fortran_test(
+    name = "hello_omp",
+    srcs = ["hello_omp.f90"],
+    copts = ["-fopenmp"],
+    deps = ["@libomp"],
 )
 ```
+
+### WebAssembly
+
+Cross-compile to wasm32 with Emscripten:
+
+```starlark
+fortran_library(name = "hello", srcs = ["hello.f90"])
+cc_binary(name = "hello_cc", deps = [":hello"])
+wasm_cc_binary(name = "hello_wasm", cc_target = ":hello_cc")
+```
+
+See [examples/](https://github.com/miinso/rules_fortran/tree/master/examples) for BLAS/LAPACK, OpenMP+wasm, and more.

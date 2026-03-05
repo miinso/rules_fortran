@@ -4,12 +4,10 @@ on:
   push:
     branches: [master]
     paths-ignore:
-      - 'docs/**'
       - '.github/workflows/docs.yaml'
   pull_request:
     branches: [master]
     paths-ignore:
-      - 'docs/**'
       - '.github/workflows/docs.yaml'
 
 jobs:
@@ -62,3 +60,19 @@ jobs:
           node examples/bazel-bin/wasm/hello_cc.js
           node examples/bazel-bin/wasm/full.js
           node examples/bazel-bin/wasm/omp_hello_cc.js
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+          bazelisk-version: 1.x
+      - name: Generate API docs
+        run: |
+          bazel build //docs:rules_doc
+          cp bazel-bin/docs/rules.md docs/reference/api.md
+      - name: Build docs
+        run: cd docs && npm install && npm run docs:build
