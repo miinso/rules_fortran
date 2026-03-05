@@ -1,8 +1,1 @@
-"""test suite for rules_fortran."""
-
-test_suite(
-    name = "all",
-    tests = [
-        "//test/unit/fortran_library:fortran_library_test",
-    ],
-)
+# tests are discovered via `bazel test //test/...`
