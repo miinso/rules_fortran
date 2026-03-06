@@ -53,13 +53,8 @@ jobs:
       - name: Run examples
         # TODO: switch to //... since we don't want to miss any
         run: cd examples && bazel test //basic:all //blas:all //omp:all --verbose_failures --test_output=all
-      - name: Build wasm32 targets
-        run: cd examples && bazel build //wasm:hello_wasm //wasm:full_wasm //wasm:omp_hello_wasm --verbose_failures
       - name: Run wasm32 tests
-        run: |
-          node examples/bazel-bin/wasm/hello_cc.js
-          node examples/bazel-bin/wasm/full.js
-          node examples/bazel-bin/wasm/omp_hello_cc.js
+        run: cd examples && bazel test --config=wasm //wasm:hello_wasm_test //wasm:full_wasm_test //wasm:omp_hello_wasm_test --verbose_failures --test_output=all
 
   docs:
     runs-on: ubuntu-latest

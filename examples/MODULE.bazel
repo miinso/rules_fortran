@@ -21,6 +21,7 @@ git_override(
 )
 
 bazel_dep(name = "rules_python", version = "1.3.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "emsdk", version = "4.0.17")
 # local_path_override(
 #     module_name = "emsdk",
