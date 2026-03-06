@@ -3,6 +3,7 @@
 load("@emsdk//emscripten_toolchain:wasm_cc_binary.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_fortran//fortran:defs.bzl", "fortran_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 # Example-3.A hello world
 fortran_library(
@@ -92,5 +93,30 @@ wasm_cc_binary(
         "full.js",
         "full.wasm",
     ],
+    tags = ["wasm"],
+)
+
+# wasm test wrappers (run via node)
+sh_test(
+    name = "hello_wasm_test",
+    srcs = ["run_wasm_test.sh"],
+    args = ["$(rootpaths :hello_wasm)"],
+    data = [":hello_wasm"],
+    tags = ["wasm"],
+)
+
+sh_test(
+    name = "full_wasm_test",
+    srcs = ["run_wasm_test.sh"],
+    args = ["$(rootpaths :full_wasm)"],
+    data = [":full_wasm"],
+    tags = ["wasm"],
+)
+
+sh_test(
+    name = "omp_hello_wasm_test",
+    srcs = ["run_wasm_test.sh"],
+    args = ["$(rootpaths :omp_hello_wasm)"],
+    data = [":omp_hello_wasm"],
     tags = ["wasm"],
 )

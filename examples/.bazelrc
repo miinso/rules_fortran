@@ -1,2 +1,12 @@
 # TODO: suppress portability warnings from external fortran sources (netlib blas/lapack)
 # --per_file_copt only applies to cc_common, not our compile_fortran
+
+# exclude wasm targets by default (need emsdk cross-compile + node to run)
+build --enable_platform_specific_config
+build:linux --build_tag_filters=-wasm --test_tag_filters=-wasm
+build:macos --build_tag_filters=-wasm --test_tag_filters=-wasm
+build:windows --build_tag_filters=-wasm --test_tag_filters=-wasm
+
+# --config=wasm: only wasm targets
+build:wasm --noenable_platform_specific_config
+build:wasm --build_tag_filters=wasm --test_tag_filters=wasm
