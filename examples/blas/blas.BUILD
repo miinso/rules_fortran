@@ -345,6 +345,7 @@ fortran_test(
     name = "sblat1",
     size = "small",
     srcs = ["TESTING/sblat1.f"],
+    visibility = ["//visibility:public"],
     deps = [":single"],
 )
 
@@ -352,6 +353,7 @@ fortran_test(
     name = "dblat1",
     size = "small",
     srcs = ["TESTING/dblat1.f"],
+    visibility = ["//visibility:public"],
     deps = [":double"],
 )
 
@@ -359,6 +361,7 @@ fortran_test(
     name = "cblat1",
     size = "small",
     srcs = ["TESTING/cblat1.f"],
+    visibility = ["//visibility:public"],
     deps = [":complex"],
 )
 
@@ -366,6 +369,7 @@ fortran_test(
     name = "zblat1",
     size = "small",
     srcs = ["TESTING/zblat1.f"],
+    visibility = ["//visibility:public"],
     deps = [":complex16"],
 )
 

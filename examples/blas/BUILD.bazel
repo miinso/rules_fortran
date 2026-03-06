@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
 load("@rules_fortran//fortran:defs.bzl", "fortran_test")
 load("@rules_python//python:defs.bzl", "py_test")
 
@@ -8,6 +9,21 @@ fortran_test(
     copts = ["-O2"],
     deps = ["@blas//:double"],
 )
+
+# Level 1 tests (no input files, run directly from @blas)
+[
+    native_test(
+        name = "%sblat1" % prefix,
+        size = "small",
+        src = "@blas//:%sblat1" % prefix,
+    )
+    for prefix in [
+        "s",
+        "d",
+        "c",
+        "z",
+    ]
+]
 
 # Level 2 tests (input files from @blas external repo)
 [
