@@ -1,25 +1,16 @@
 name: Release
-
 on:
   push:
     tags:
-      - "*.*.*"
-
+      - "v*.*.*"
 permissions:
-  contents: write
   id-token: write
   attestations: write
-
+  contents: write
 jobs:
   release:
-    uses: bazel-contrib/.github/.github/workflows/release.yaml@v1
+    uses: bazel-contrib/.github/.github/workflows/release_ruleset.yaml@v7.4.0
     with:
+      prerelease: false
       release_files: rules_fortran-*.tar.gz
-
-  publish:
-    needs: release
-    uses: ./.github/workflows/publish.yaml
-    with:
       tag_name: ${{ github.ref_name }}
-    secrets:
-      publish_token: ${{ secrets.BCR_PUBLISH_TOKEN }}
