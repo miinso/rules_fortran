@@ -1,37 +1,48 @@
 matrix:
   platform:
-    - debian10
-    - ubuntu2004
+    - ubuntu2404
+    - ubuntu2404_arm64
+    - debian13
+    - fedora43
     - macos
     - macos_arm64
-  bazel:
-    - 7.x
-    - 8.x
-
+    - windows
+  bazel: [7.x, 8.x]
 tasks:
-  verify_targets:
-    name: Verify build targets
+  unit_tests:
+    name: "Unit tests"
     platform: ${{ platform }}
     bazel: ${{ bazel }}
-    build_targets:
-      - '@rules_fortran//fortran/...'
-
+    test_targets:
+      - "//test/..."
 bcr_test_module:
-  module_path: examples
+  module_path: "examples"
   matrix:
     platform:
-      - debian10
-      - ubuntu2004
+      - ubuntu2404
+      - ubuntu2404_arm64
+      - debian13
+      - fedora43
       - macos
       - macos_arm64
-    bazel:
-      - 7.x
-      - 8.x
+      - windows
+    bazel: [7.x, 8.x]
   tasks:
     run_examples:
-      build_targets:
-        - '//basic/...'
-        - '//interop/...'
+      name: "Run examples"
+      platform: ${{ platform }}
+      bazel: ${{ bazel }}
       test_targets:
-        - '//basic/...'
-        - '//interop/...'
+        - "//basic:all"
+        - "//blas:all"
+        - "//omp:all"
+    run_wasm_tests:
+      name: "Run wasm tests"
+      platform: ubuntu2404
+      bazel: 8.x
+      test_targets:
+        - "//wasm:hello_wasm_test"
+        - "//wasm:full_wasm_test"
+        - "//wasm:omp_hello_wasm_test"
+      test_flags:
+        - --config=wasm
