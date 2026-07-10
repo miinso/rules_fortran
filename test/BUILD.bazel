@@ -1,1 +1,10 @@
 # tests are discovered via `bazel test //test/...`
+
+load("@rules_shell//shell:sh_library.bzl", "sh_library")
+
+sh_library(
+    name = "test_utils_sh",
+    testonly = True,
+    srcs = ["test_utils.sh"],
+    visibility = ["//test:__subpackages__"],
+)

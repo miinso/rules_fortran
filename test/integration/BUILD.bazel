@@ -1,0 +1,12 @@
+load("//test/integration:rules_fortran_integration_test.bzl", "rules_fortran_integration_test")
+
+exports_files(
+    srcs = ["test_launcher.sh"],
+    visibility = ["//test:__subpackages__"],
+)
+
+rules_fortran_integration_test(
+    name = "basic_test",
+    tags = ["requires-network"],
+    test_script = "basic_test.sh",
+)
