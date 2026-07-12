@@ -10,6 +10,3 @@ build:windows --build_tag_filters=-wasm --test_tag_filters=-wasm
 # --config=wasm: only wasm targets
 build:wasm --noenable_platform_specific_config
 build:wasm --build_tag_filters=wasm --test_tag_filters=wasm
-# bazel 9 stopped passing the ambient PATH to test actions on windows; the wasm
-# test runner finds node via PATH (fine on linux where node is in /usr/bin)
-test:wasm --test_env=PATH
