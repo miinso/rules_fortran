@@ -21,9 +21,9 @@ git_override(
     remote = "https://github.com/miinso/omp.git",
 )
 
-bazel_dep(name = "rules_python", version = "1.3.0")
+bazel_dep(name = "rules_python", version = "1.6.1")
 bazel_dep(name = "rules_shell", version = "0.6.1")
-bazel_dep(name = "emsdk", version = "4.0.17")
+bazel_dep(name = "emsdk", version = "6.0.2")
 # local_path_override(
 #     module_name = "emsdk",
 #     path = "../../emsdk/bazel",
