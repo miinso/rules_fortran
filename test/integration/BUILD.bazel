@@ -7,6 +7,10 @@ exports_files(
 
 rules_fortran_integration_test(
     name = "basic_test",
-    tags = ["requires-network"],
+    size = "large",
+    tags = [
+        "manual",
+        "requires-network",
+    ],
     test_script = "basic_test.sh",
 )
