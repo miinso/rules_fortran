@@ -40,6 +40,7 @@ rules_fortran_dir="$(dirname "$rules_fortran_module")"
 scratch_workspace="$TEST_TMPDIR/scratch"
 mkdir -p "$scratch_workspace"
 cd "$scratch_workspace"
+trap 'bazel shutdown || :' EXIT
 
 # Make rules_fortran available
 cat > MODULE.bazel << EOF
