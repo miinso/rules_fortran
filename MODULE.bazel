@@ -10,7 +10,15 @@ bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_cc", version = "0.2.4")
 
 bazel_dep(name = "rules_testing", version = "0.7.0", dev_dependency = True)
+bazel_dep(name = "rules_shell", version = "0.6.1", dev_dependency = True)
 bazel_dep(name = "stardoc", version = "0.8.1", dev_dependency = True)
+
+local_bazel_import = use_repo_rule("//:local_bazel.bzl", "local_bazel_import")
+
+local_bazel_import(
+    name = "local_bazel",
+    dev_dependency = True,
+)
 
 flang = use_extension("//fortran:extensions.bzl", "flang")
 use_repo(

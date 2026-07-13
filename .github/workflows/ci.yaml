@@ -48,8 +48,8 @@ jobs:
           bazelisk-cache: true
           repository-cache: true
           bazelisk-version: 1.x
-      - name: Run unit tests
-        run: bazel test //test/... --verbose_failures --test_output=all
+      - name: Run unit and integration tests
+        run: bazel test //test/... //test/integration:basic_test --verbose_failures --test_output=all
       - name: Run examples
         # TODO: switch to //... since we don't want to miss any
         run: cd examples && bazel test //basic:all //blas:all //omp:all --verbose_failures --test_output=all

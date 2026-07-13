@@ -37,6 +37,14 @@ filegroup(
     srcs = glob(["**/*.bzl"]),
 )
 
+filegroup(
+    name = "srcs",
+    srcs = glob(["*"]) + [
+        "//fortran/private:srcs",
+        "//fortran/toolchains:srcs",
+    ],
+)
+
 exports_files([
     "defs.bzl",
     "repositories.bzl",

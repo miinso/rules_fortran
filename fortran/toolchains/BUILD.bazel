@@ -226,3 +226,8 @@ filegroup(
         ":windows_x86_64_toolchain",
     ],
 )
+
+filegroup(
+    name = "srcs",
+    srcs = glob(["**/*"]),
+)

@@ -20,3 +20,15 @@ filegroup(
     name = "all_files",
     srcs = glob(["**/*"]),
 )
+
+filegroup(
+    name = "srcs",
+    testonly = True,
+    srcs = [
+        "BUILD.bazel",
+        "MODULE.bazel",
+        "defs.bzl",
+        "//fortran:srcs",
+    ],
+    visibility = ["//test:__subpackages__"],
+)
