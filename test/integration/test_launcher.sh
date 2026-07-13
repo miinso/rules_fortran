@@ -26,11 +26,13 @@ fi
 # Put bazel on PATH
 bazel_binary="$(rlocation "$BAZEL_BINARY")"
 bazel_bin_dir="$TEST_TMPDIR/bazel"
+bazel_name=bazel
 if is_windows; then
     bazel_bin_dir="$(cygpath -u "$bazel_bin_dir")"
+    bazel_name=bazel.exe
 fi
 mkdir -p "$bazel_bin_dir"
-cp "$bazel_binary" "$bazel_bin_dir/bazel"
+cp "$bazel_binary" "$bazel_bin_dir/$bazel_name"
 export PATH="$bazel_bin_dir:$PATH"
 
 rules_fortran_module="$(rlocation rules_fortran/MODULE.bazel)"
