@@ -55,5 +55,4 @@ EOF
 test_runner_path="$(rlocation "$TEST_RUNNER")" || (echo >&2 "FAILED TO LOAD TEST RUNNER" && exit 1)
 test_runner_cmd=( "${test_runner_path}" )
 
-echo "$test_runner_cmd"
 "${test_runner_cmd[@]}"
