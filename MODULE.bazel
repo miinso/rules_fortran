@@ -15,7 +15,10 @@ bazel_dep(name = "stardoc", version = "0.8.1", dev_dependency = True)
 
 local_bazel_import = use_repo_rule("//:local_bazel.bzl", "local_bazel_import")
 
-local_bazel_import(name = "local_bazel", dev_dependency = True)
+local_bazel_import(
+    name = "local_bazel",
+    dev_dependency = True,
+)
 
 flang = use_extension("//fortran:extensions.bzl", "flang")
 use_repo(

@@ -25,8 +25,8 @@ def rules_fortran_integration_test(
     bazel_bin = "@local_bazel//:bazel"
 
     test_env = {
-        "TEST_RUNNER": "$(rlocationpath %s)" % test_script,
         "BAZEL_BINARY": "$(rlocationpath %s)" % bazel_bin,
+        "TEST_RUNNER": "$(rlocationpath %s)" % test_script,
     }
     test_env.update(env)
 
