@@ -84,8 +84,10 @@ jobs:
           bazelisk-cache: true
           repository-cache: true
           bazelisk-version: 1.x
-      - name: Run unit tests
-        run: bazel test //test/... --verbose_failures
+      - name: Run unit and integration tests
+        run: |
+          RC="$(bazel info repository_cache)"
+          bazel test //test/... //test/integration:basic_test --test_env=REPOSITORY_CACHE="$RC" --sandbox_writable_path="$RC" --verbose_failures
       - name: Run examples
         run: cd examples && bazel test //basic:all //blas:all --verbose_failures
       - name: Run wasm32 tests
