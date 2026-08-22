@@ -40,12 +40,14 @@ cc_test(
     deps = [":fortran_runtime_features"],
 )
 
-# full lapacke client
+# full lapacke client. tagged manual since we don't want ci building
+# @lapack/@lapacke from source every run; run locally when touching overlays.
 cc_test(
     name = "full",
     srcs = [
         "full.c",
     ],
+    tags = ["manual"],
     deps = [
         "@blas//:single",
         "@lapack//:single",

@@ -47,7 +47,10 @@ alias(
         ),
     )
 
+# local: the imported binary depends on this machine's PATH, so the repo must
+# never be shared across workspaces via bazel 9's repo contents cache.
 local_bazel_import = repository_rule(
     implementation = _local_bazel_import_impl,
     environ = ["PATH"],
+    local = True,
 )

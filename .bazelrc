@@ -8,6 +8,10 @@ common --color=yes
 test --test_output=errors
 test --test_summary=detailed
 
+# we want nested integration-test builds to reuse the outer repository cache;
+# ci sets REPOSITORY_CACHE and this passes it through into the test env.
+test --test_env=REPOSITORY_CACHE
+
 # CI settings
 build:ci --announce_rc
 build:ci --show_timestamps

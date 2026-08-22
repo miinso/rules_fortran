@@ -5,6 +5,9 @@ exports_files(
     visibility = ["//test:__subpackages__"],
 )
 
+# tagged manual since we don't want wildcard sweeps (`//test/...` in bcr
+# presubmit, consumer builds) fetching @local_bazel or touching the network.
+# ci names each target explicitly in ci.yaml; add new scenarios there too.
 rules_fortran_integration_test(
     name = "basic_test",
     size = "large",
