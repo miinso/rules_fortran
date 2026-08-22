@@ -44,6 +44,13 @@ mkdir -p "$scratch_workspace"
 cd "$scratch_workspace"
 trap 'bazel shutdown || :' EXIT
 
+# we don't want every nested build re-downloading the flang toolchain, so
+# reuse the outer repository cache when ci provides one (REPOSITORY_CACHE via
+# --test_env, with --sandbox_writable_path so the sandbox can write to it).
+if [ -n "${REPOSITORY_CACHE:-}" ]; then
+    add_to_bazelrc "common --repository_cache=$REPOSITORY_CACHE"
+fi
+
 # Make rules_fortran available
 cat > MODULE.bazel << EOF
 module(name = "test_module")
