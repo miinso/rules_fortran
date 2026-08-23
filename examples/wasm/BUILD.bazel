@@ -96,12 +96,16 @@ wasm_cc_binary(
     tags = ["wasm"],
 )
 
-# wasm test wrappers (run via node)
+# wasm test wrappers (run via hermetic node from runfiles)
 sh_test(
     name = "hello_wasm_test",
     srcs = ["run_wasm_test.sh"],
     args = ["$(rootpaths :hello_wasm)"],
-    data = [":hello_wasm"],
+    data = [
+        ":hello_wasm",
+        "@nodejs_host//:node_bin",
+    ],
+    env = {"NODE": "$(rlocationpath @nodejs_host//:node_bin)"},
     tags = ["wasm"],
 )
 
@@ -109,7 +113,11 @@ sh_test(
     name = "full_wasm_test",
     srcs = ["run_wasm_test.sh"],
     args = ["$(rootpaths :full_wasm)"],
-    data = [":full_wasm"],
+    data = [
+        ":full_wasm",
+        "@nodejs_host//:node_bin",
+    ],
+    env = {"NODE": "$(rlocationpath @nodejs_host//:node_bin)"},
     tags = ["wasm"],
 )
 
@@ -117,6 +125,10 @@ sh_test(
     name = "omp_hello_wasm_test",
     srcs = ["run_wasm_test.sh"],
     args = ["$(rootpaths :omp_hello_wasm)"],
-    data = [":omp_hello_wasm"],
+    data = [
+        ":omp_hello_wasm",
+        "@nodejs_host//:node_bin",
+    ],
+    env = {"NODE": "$(rlocationpath @nodejs_host//:node_bin)"},
     tags = ["wasm"],
 )

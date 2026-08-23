@@ -247,9 +247,9 @@ ZBLAS3_SRCS = [
     "SRC/zgemmtr.f",
 ]
 
-# Compiler flags matching netlib BLAS defaults
+# netlib's default opt level, plus -w to keep vendored-source warnings out of ci logs
 # - See: https://flang.llvm.org/docs/OptionComparison.html
-BLAS_COPTS = ["-O2"]
+BLAS_COPTS = ["-O2", "-w"]
 
 # Core libraries without error handlers (BLAS routines only, no xerbla)
 # These are public so test programs can use them with their own xerbla implementations
@@ -345,6 +345,7 @@ fortran_test(
     name = "sblat1",
     size = "small",
     srcs = ["TESTING/sblat1.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":single"],
 )
@@ -353,6 +354,7 @@ fortran_test(
     name = "dblat1",
     size = "small",
     srcs = ["TESTING/dblat1.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":double"],
 )
@@ -361,6 +363,7 @@ fortran_test(
     name = "cblat1",
     size = "small",
     srcs = ["TESTING/cblat1.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":complex"],
 )
@@ -369,6 +372,7 @@ fortran_test(
     name = "zblat1",
     size = "small",
     srcs = ["TESTING/zblat1.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":complex16"],
 )
@@ -378,6 +382,7 @@ fortran_test(
 fortran_binary(
     name = "sblat2",
     srcs = ["TESTING/sblat2.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":single_core"],
 )
@@ -385,6 +390,7 @@ fortran_binary(
 fortran_binary(
     name = "dblat2",
     srcs = ["TESTING/dblat2.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":double_core"],
 )
@@ -392,6 +398,7 @@ fortran_binary(
 fortran_binary(
     name = "cblat2",
     srcs = ["TESTING/cblat2.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":complex_core"],
 )
@@ -399,6 +406,7 @@ fortran_binary(
 fortran_binary(
     name = "zblat2",
     srcs = ["TESTING/zblat2.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":complex16_core"],
 )
@@ -408,6 +416,7 @@ fortran_binary(
 fortran_binary(
     name = "sblat3",
     srcs = ["TESTING/sblat3.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":single_core"],
 )
@@ -415,6 +424,7 @@ fortran_binary(
 fortran_binary(
     name = "dblat3",
     srcs = ["TESTING/dblat3.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":double_core"],
 )
@@ -422,6 +432,7 @@ fortran_binary(
 fortran_binary(
     name = "cblat3",
     srcs = ["TESTING/cblat3.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":complex_core"],
 )
@@ -429,6 +440,7 @@ fortran_binary(
 fortran_binary(
     name = "zblat3",
     srcs = ["TESTING/zblat3.f"],
+    copts = BLAS_COPTS,
     visibility = ["//visibility:public"],
     deps = [":complex16_core"],
 )

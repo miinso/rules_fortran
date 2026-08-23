@@ -18,16 +18,16 @@ jobs:
         os:
           - ubuntu-latest
           - ubuntu-24.04-arm
-          - macos-15
+          - macos-15-intel
           - macos-latest
           - windows-latest
-        bazel: ['7.x', '8.x']
+        bazel: ['7.x', '8.x', '9.x']
         include:
           - os: ubuntu-latest
             name: Linux x86_64
           - os: ubuntu-24.04-arm
             name: Linux ARM64
-          - os: macos-15
+          - os: macos-15-intel
             name: macOS x86_64
           - os: macos-latest
             name: macOS ARM64
@@ -42,8 +42,8 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: bazel-contrib/setup-bazel@0.14.0
+      - uses: actions/checkout@v7
+      - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
           repository-cache: true
@@ -63,8 +63,8 @@ jobs:
     env:
       USE_BAZEL_VERSION: 8.x
     steps:
-      - uses: actions/checkout@v4
-      - uses: bazel-contrib/setup-bazel@0.14.0
+      - uses: actions/checkout@v7
+      - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
           repository-cache: true

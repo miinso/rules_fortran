@@ -1,8 +1,9 @@
+#!/usr/bin/env bash
 # Setup runfiles and the test directory and then run the provided test script.
 
-[ -z "$TEST_SRCDIR" ] && { echo "TEST_SRCDIR not set!" >&2; exit 1; }
+set -euo pipefail
 
-export TEST_log=$TEST_TMPDIR/log
+[ -z "${TEST_SRCDIR:-}" ] && { echo "TEST_SRCDIR not set!" >&2; exit 1; }
 
 # --- begin runfiles.bash initialization v3 ---
 # Copy-pasted from the Bazel Bash runfiles library v3.
@@ -42,7 +43,7 @@ rules_fortran_dir="$(dirname "$rules_fortran_module")"
 scratch_workspace="$TEST_TMPDIR/scratch"
 mkdir -p "$scratch_workspace"
 cd "$scratch_workspace"
-trap 'bazel shutdown || :' EXIT
+trap 'bazel shutdown >/dev/null 2>&1 || :' EXIT
 
 # we don't want every nested build re-downloading the flang toolchain, so
 # reuse the outer repository cache when ci provides one (REPOSITORY_CACHE via
@@ -62,7 +63,7 @@ local_path_override(
 )
 EOF
 
-test_runner_path="$(rlocation "$TEST_RUNNER")" || (echo >&2 "FAILED TO LOAD TEST RUNNER" && exit 1)
+test_runner_path="$(rlocation "$TEST_RUNNER")" || { echo >&2 "FAILED TO LOAD TEST RUNNER"; exit 1; }
 test_runner_cmd=( "${test_runner_path}" )
 
 "${test_runner_cmd[@]}"
