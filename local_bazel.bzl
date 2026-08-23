@@ -17,7 +17,7 @@ def _local_bazel_import_impl(repository_ctx):
     if bazel_path == None:
         bazel_path = repository_ctx.which(bazel_name)
         if bazel_path == None:
-            fail("Neither '%s' or '%s' not found on PATH." % (bazel_real, bazel_name))
+            fail("Neither '%s' nor '%s' found on PATH." % (bazel_real, bazel_name))
 
     repository_ctx.symlink(bazel_path, link_name)
 
