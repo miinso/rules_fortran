@@ -50,7 +50,9 @@ http_archive(
     build_file = "//blas:blas.BUILD",
     # netlib 3.12.1 blat1 drivers always exit 0 and the c/z variants FAIL the
     # infinity row unconditionally (missing SNRM == ZNRM guard that s/d have);
-    # patched to fix the comparison and STOP 1 when any test failed
+    # patched to fix the comparison and STOP 1 when any test failed. guard fixed
+    # upstream post-3.12.1: https://github.com/Reference-LAPACK/lapack/pull/1264
+    # -- drop the comparison hunks when the next release ships
     patch_args = ["-p1"],
     patches = ["//blas:blat1-nrm2-inf-and-exit-code.patch"],
     sha256 = "2ca6407a001a474d4d4d35f3a61550156050c48016d949f0da0529c0aa052422",
