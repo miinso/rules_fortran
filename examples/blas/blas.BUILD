@@ -249,7 +249,7 @@ ZBLAS3_SRCS = [
 
 # Compiler flags matching netlib BLAS defaults
 # - See: https://flang.llvm.org/docs/OptionComparison.html
-BLAS_COPTS = ["-O2"]
+BLAS_COPTS = ["-O2", "-w"]
 
 # Core libraries without error handlers (BLAS routines only, no xerbla)
 # These are public so test programs can use them with their own xerbla implementations

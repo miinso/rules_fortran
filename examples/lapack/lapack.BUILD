@@ -2025,12 +2025,14 @@ NO_OPT_COMPLEX16_SRCS = [
 fortran_library(
     name = "la_constants",
     srcs = ["SRC/la_constants.f90"],
+    copts = ["-w"],
 )
 
 # Module: la_xisnan (provides la_xisnan.mod, depends on la_constants.mod)
 fortran_library(
     name = "la_xisnan",
     srcs = ["SRC/la_xisnan.F90"],
+    copts = ["-w"],
     deps = [":la_constants"],
 )
 
@@ -2051,6 +2053,7 @@ fortran_library(
         "SRC/la_xisnan.F90",
         "SRC/la_xisnan.f90",
     ]],
+    copts = ["-w"],
     deps = [":modules"],
 )
 
@@ -2058,6 +2061,7 @@ fortran_library(
 fortran_library(
     name = "sclaux",
     srcs = [s for s in SCLAUX_SRCS if s not in NO_OPT_SINGLE_SRCS and s != "SRC/la_constants.f90"],
+    copts = ["-w"],
     deps = [
         ":allaux",
         ":modules",
@@ -2069,6 +2073,7 @@ fortran_library(
 fortran_library(
     name = "dzlaux",
     srcs = [s for s in DZLAUX_SRCS if s not in NO_OPT_DOUBLE_SRCS and s != "SRC/la_constants.f90"],
+    copts = ["-w"],
     deps = [
         ":allaux",
         ":modules",
@@ -2080,7 +2085,7 @@ fortran_library(
 fortran_library(
     name = "no_opt_single",
     srcs = NO_OPT_SINGLE_SRCS,
-    copts = ["-O0"],
+    copts = ["-O0", "-w"],
     deps = [":modules"],
 )
 
@@ -2088,7 +2093,7 @@ fortran_library(
 fortran_library(
     name = "no_opt_double",
     srcs = NO_OPT_DOUBLE_SRCS,
-    copts = ["-O0"],
+    copts = ["-O0", "-w"],
     deps = [":modules"],
 )
 
@@ -2096,7 +2101,7 @@ fortran_library(
 fortran_library(
     name = "no_opt_complex",
     srcs = NO_OPT_COMPLEX_SRCS,
-    copts = ["-O0"],
+    copts = ["-O0", "-w"],
     deps = [":modules"],
 )
 
@@ -2104,7 +2109,7 @@ fortran_library(
 fortran_library(
     name = "no_opt_complex16",
     srcs = NO_OPT_COMPLEX16_SRCS,
-    copts = ["-O0"],
+    copts = ["-O0", "-w"],
     deps = [":modules"],
 )
 
@@ -2112,6 +2117,7 @@ fortran_library(
 fortran_library(
     name = "single",
     srcs = SLASRC_SRCS + DSLASRC_SRCS,  # Include shared routines that call single precision
+    copts = ["-w"],
     deps = [
         ":no_opt_single",
         ":sclaux",
@@ -2123,6 +2129,7 @@ fortran_library(
 fortran_library(
     name = "double",
     srcs = DLASRC_SRCS,
+    copts = ["-w"],
     deps = [
         ":single",  # Mixed precision routines need single precision (spotrf, sgetrf, etc.)
         ":dzlaux",
@@ -2135,6 +2142,7 @@ fortran_library(
 fortran_library(
     name = "complex",
     srcs = CLASRC_SRCS + ZCLASRC_SRCS,  # Include shared routines that call complex precision
+    copts = ["-w"],
     deps = [
         ":single",  # Complex routines call single precision (slarmm_, sbdsvdx_, etc.)
         ":no_opt_complex",
@@ -2147,6 +2155,7 @@ fortran_library(
 fortran_library(
     name = "complex16",
     srcs = ZLASRC_SRCS,
+    copts = ["-w"],
     deps = [
         ":complex",  # Mixed precision routines need complex (cpotrf, cgetrf, etc.)
         ":double",  # Complex16 routines call double precision (dlarmm_, dbdsvdx_, etc.)
@@ -2278,19 +2287,20 @@ ZMATGEN_SRCS = [
 fortran_library(
     name = "tmg_noopt_single",
     srcs = SCATGEN_NOOPT_SRCS,
-    copts = ["-O0"],
+    copts = ["-O0", "-w"],
 )
 
 fortran_library(
     name = "tmg_noopt_double",
     srcs = DZATGEN_NOOPT_SRCS,
-    copts = ["-O0"],
+    copts = ["-O0", "-w"],
 )
 
 # TMG library targets
 fortran_library(
     name = "tmg_single",
     srcs = SMATGEN_SRCS + SCATGEN_SRCS,
+    copts = ["-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":single",
@@ -2302,6 +2312,7 @@ fortran_library(
 fortran_library(
     name = "tmg_double",
     srcs = DMATGEN_SRCS + DZATGEN_SRCS,
+    copts = ["-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":double",
@@ -2313,6 +2324,7 @@ fortran_library(
 fortran_library(
     name = "tmg_complex",
     srcs = CMATGEN_SRCS + SCATGEN_SRCS,
+    copts = ["-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex",
@@ -2324,6 +2336,7 @@ fortran_library(
 fortran_library(
     name = "tmg_complex16",
     srcs = ZMATGEN_SRCS + DZATGEN_SRCS,
+    copts = ["-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex16",
@@ -3068,6 +3081,7 @@ ZLINTST_SRCS = [
 fortran_library(
     name = "lin_aux",
     srcs = ALINTST_SRCS,
+    copts = ["-w"],
     visibility = ["//visibility:public"],
 )
 
@@ -3075,7 +3089,7 @@ fortran_library(
 fortran_binary(
     name = "xlintsts",
     srcs = SLINTST_SRCS + SCLNTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":lin_aux",
@@ -3088,7 +3102,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstd",
     srcs = DLINTST_SRCS + DZLNTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":lin_aux",
@@ -3101,7 +3115,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstc",
     srcs = CLINTST_SRCS + SCLNTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":lin_aux",
@@ -3115,7 +3129,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstz",
     srcs = ZLINTST_SRCS + DZLNTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":lin_aux",
@@ -3528,6 +3542,7 @@ ZDMDEIGTST_SRCS = ["TESTING/EIG/zchkdmd.f90"]
 fortran_library(
     name = "eig_aux",
     srcs = AEIGTST_SRCS,
+    copts = ["-w"],
     visibility = ["//visibility:public"],
 )
 
@@ -3535,7 +3550,7 @@ fortran_library(
 fortran_binary(
     name = "xeigtsts",
     srcs = SEIGTST_SRCS + SCIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":eig_aux",
@@ -3548,7 +3563,7 @@ fortran_binary(
 fortran_binary(
     name = "xeigtstd",
     srcs = DEIGTST_SRCS + DZIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":eig_aux",
@@ -3561,7 +3576,7 @@ fortran_binary(
 fortran_binary(
     name = "xeigtstc",
     srcs = CEIGTST_SRCS + SCIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":eig_aux",
@@ -3575,7 +3590,7 @@ fortran_binary(
 fortran_binary(
     name = "xeigtstz",
     srcs = ZEIGTST_SRCS + DZIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":eig_aux",
@@ -3590,7 +3605,7 @@ fortran_binary(
 fortran_binary(
     name = "xdmdeigtsts",
     srcs = SDMDEIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":single",
@@ -3602,7 +3617,7 @@ fortran_binary(
 fortran_binary(
     name = "xdmdeigtstd",
     srcs = DDMDEIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":double",
@@ -3614,7 +3629,7 @@ fortran_binary(
 fortran_binary(
     name = "xdmdeigtstc",
     srcs = CDMDEIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex",
@@ -3627,7 +3642,7 @@ fortran_binary(
 fortran_binary(
     name = "xdmdeigtstz",
     srcs = ZDMDEIGTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex16",
@@ -3687,7 +3702,7 @@ ZCLINTST_SRCS = [
 fortran_binary(
     name = "xlintstds",
     srcs = DSLINTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":double",
@@ -3700,7 +3715,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstzc",
     srcs = ZCLINTST_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex16",
@@ -3816,7 +3831,7 @@ ZLINTSTRFP_SRCS = [
 fortran_binary(
     name = "xlintstrfs",
     srcs = SLINTSTRFP_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":single",
@@ -3828,7 +3843,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstrfd",
     srcs = DLINTSTRFP_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":double",
@@ -3840,7 +3855,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstrfc",
     srcs = CLINTSTRFP_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex",
@@ -3853,7 +3868,7 @@ fortran_binary(
 fortran_binary(
     name = "xlintstrfz",
     srcs = ZLINTSTRFP_SRCS,
-    copts = ["-O2"],
+    copts = ["-O2", "-w"],
     visibility = ["//visibility:public"],
     deps = [
         ":complex16",
