@@ -11,7 +11,7 @@ module(
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
-bazel_dep(name = "rules_cc", version = "0.2.4")
+bazel_dep(name = "rules_cc", version = "0.2.17")
 
 # TODO: drop git_override once libomp lands in BCR
 bazel_dep(name = "libomp", version = "0.0.0")
@@ -21,7 +21,7 @@ git_override(
     remote = "https://github.com/miinso/omp.git",
 )
 
-bazel_dep(name = "rules_python", version = "1.6.1")
+bazel_dep(name = "rules_python", version = "1.8.4")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "emsdk", version = "6.0.2")
 
