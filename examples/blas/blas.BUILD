@@ -247,7 +247,7 @@ ZBLAS3_SRCS = [
     "SRC/zgemmtr.f",
 ]
 
-# Compiler flags matching netlib BLAS defaults
+# netlib's default opt level, plus -w to keep vendored-source warnings out of ci logs
 # - See: https://flang.llvm.org/docs/OptionComparison.html
 BLAS_COPTS = ["-O2", "-w"]
 

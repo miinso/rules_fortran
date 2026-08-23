@@ -18,6 +18,9 @@ if [ -n "${NODE:-}" ]; then
     NODE_BIN=$(grep "^$NODE " "$RUNFILES_MANIFEST_FILE" | cut -d' ' -f2- || true)
   fi
 fi
+if [ -z "$NODE_BIN" ] && [ -n "${NODE:-}" ]; then
+  echo "warning: hermetic node not found in runfiles ($NODE); falling back to PATH node" >&2
+fi
 NODE_BIN="${NODE_BIN:-node}"
 
 # try symlink tree (linux)
@@ -30,7 +33,7 @@ done
 
 # manifest lookup (windows)
 if [ -n "${RUNFILES_MANIFEST_FILE:-}" ] && [ -f "$RUNFILES_MANIFEST_FILE" ]; then
-  R=$(grep "^_main/$JS " "$RUNFILES_MANIFEST_FILE" | cut -d' ' -f2-)
+  R=$(grep "^_main/$JS " "$RUNFILES_MANIFEST_FILE" | cut -d' ' -f2- || true)
   [ -n "$R" ] && [ -f "$R" ] && exec "$NODE_BIN" "$R"
 fi
 
