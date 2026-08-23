@@ -1,0 +1,18 @@
+load("@rules_fortran//fortran:defs.bzl", "fortran_library", "fortran_test")
+
+fortran_library(
+    name = "arithmetic",
+    srcs = ["arithmetic.f90"],
+)
+
+fortran_library(
+    name = "calculator",
+    srcs = ["calculator.f90"],
+    deps = [":arithmetic"],
+)
+
+fortran_test(
+    name = "calculator_test",
+    srcs = ["calculator_test.f90"],
+    deps = [":calculator"],
+)
