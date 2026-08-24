@@ -1,2 +1,3 @@
-# Separate Bazel module
+# Separate Bazel modules
 examples
+e2e

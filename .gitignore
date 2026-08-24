@@ -33,3 +33,5 @@ docs/.vitepress/cache/
 docs/.vitepress/dist/
 docs/reference/api.md
 docs/package-lock.json
+# nested workspace convenience symlinks
+e2e/smoke/bazel-*

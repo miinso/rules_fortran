@@ -1,0 +1,10 @@
+"""BCR smoke test module.
+
+Consumes rules_fortran with no overrides, so registry presubmit resolves it
+through the candidate registry -- the exact path an external consumer takes.
+Locally: bazel test //... --override_module=rules_fortran=../..
+"""
+
+module(name = "smoke")
+
+bazel_dep(name = "rules_fortran", version = "0.0.0")
