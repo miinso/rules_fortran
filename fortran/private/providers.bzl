@@ -9,7 +9,7 @@ FortranInfo = provider(
     fields = {
         "compile_flags": "list of compilation flags",
         "link_flags": "list of link flags",
-        "module_map": "dict mapping module names to module files",
+        "module_map": "dict keyed by module directory path; each value is that module directory (0 or more .mod files)",
         "transitive_libraries": "depset of static library files (.a)",
         "transitive_modules": "depset of module files (.mod)",
         "transitive_objects": "depset of object files (.o)",

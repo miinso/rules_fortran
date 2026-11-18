@@ -22,7 +22,7 @@ def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includ
         ctx: Rule context
         toolchain: FortranToolchainInfo provider
         src: Source file to compile
-        module_map: Dictionary of module names to module files
+        module_map: Dictionary keyed by module directory path; values are the module directories
         copts: Additional compilation options
         defines: Preprocessor defines (e.g., ['_OPENMP', 'USE_MPI'])
         includes: List of include directories to add to compile line
