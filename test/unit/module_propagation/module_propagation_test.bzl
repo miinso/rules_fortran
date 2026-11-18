@@ -63,6 +63,25 @@ modules_propagate_transitively_test = analysistest.make(
     _module_propagation_test_impl,
 )
 
+def _same_basename_sources_test_impl(ctx):
+    """Test that sources sharing a basename in different targets both keep their module directory."""
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+
+    module_dirs = target[FortranInfo].module_map.values()
+    asserts.equals(
+        env,
+        3,
+        len(module_dirs),
+        "Expected one module directory per source, found {}".format(len(module_dirs)),
+    )
+
+    return analysistest.end(env)
+
+same_basename_sources_test = analysistest.make(
+    _same_basename_sources_test_impl,
+)
+
 def module_propagation_test_suite(name):
     """Test suite for Fortran module propagation."""
 
@@ -94,6 +113,26 @@ def module_propagation_test_suite(name):
         tags = ["manual"],
     )
 
+    # Two libraries whose sources share a basename
+    fortran_library(
+        name = "same_basename_a",
+        srcs = ["same_basename_a/util.f90"],
+        tags = ["manual"],
+    )
+
+    fortran_library(
+        name = "same_basename_b",
+        srcs = ["same_basename_b/util.f90"],
+        tags = ["manual"],
+    )
+
+    fortran_library(
+        name = "same_basename_user",
+        srcs = ["module_a.f90"],
+        deps = [":same_basename_a", ":same_basename_b"],
+        tags = ["manual"],
+    )
+
     # Create tests
     transitive_modules_excludes_cc_outputs_test(
         name = "transitive_modules_excludes_cc_outputs_test",
@@ -105,11 +144,17 @@ def module_propagation_test_suite(name):
         target_under_test = ":lib_c",
     )
 
+    same_basename_sources_test(
+        name = "same_basename_sources_test",
+        target_under_test = ":same_basename_user",
+    )
+
     # Bundle into test suite
     native.test_suite(
         name = name,
         tests = [
             ":transitive_modules_excludes_cc_outputs_test",
             ":modules_propagate_transitively_test",
+            ":same_basename_sources_test",
         ],
     )
