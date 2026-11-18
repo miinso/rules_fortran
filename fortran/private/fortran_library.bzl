@@ -30,8 +30,7 @@ def _fortran_library_impl(ctx):
     transitive_objects = [dep[FortranInfo].transitive_objects for dep in ctx.attr.deps if FortranInfo in dep]
     transitive_libraries = [dep[FortranInfo].transitive_libraries for dep in ctx.attr.deps if FortranInfo in dep]
 
-    # module_map: {source_basename: directory_with_mod_files}
-    # allows querying module files (if any) by source filename
+    # module_map: {module_directory_path: directory_with_mod_files}
     # sources that USE modules need access to those `*.mod` files at compile time
     module_map = {}
     for dep in ctx.attr.deps:
@@ -59,10 +58,10 @@ def _fortran_library_impl(ctx):
         if result.module:
             modules.append(result.module)
 
-            # Use source basename as key for the module directory
+            # Key by the module directory path, which is unique per target and
+            # source, so sources sharing a basename do not overwrite each other.
             # The directory may contain 0 or more .mod files
-            src_key = src.basename.replace(".", "_")
-            local_module_map[src_key] = result.module
+            local_module_map[result.module.path] = result.module
 
     module_map.update(local_module_map)
 
