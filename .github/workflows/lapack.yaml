@@ -1,0 +1,27 @@
+name: LAPACK suite
+
+# full netlib lapack test suite under flang. too slow for every pr, and it
+# tests lapack numerics more than the rules, so it runs weekly and on demand.
+# not a required check.
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  lapack:
+    runs-on: ubuntu-latest
+    name: LAPACK suite (Linux x86_64, Bazel 9.x)
+    env:
+      USE_BAZEL_VERSION: 9.x
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bazel-contrib/setup-bazel@0.19.2
+        with:
+          bazelisk-cache: true
+          disk-cache: lapack-suite
+          repository-cache: true
+          bazelisk-version: 1.x
+      - name: Run lapack suite
+        # keep_going: report every failing driver, not just the first
+        run: cd examples && bazel test //lapack:all --keep_going --verbose_failures --test_output=errors
