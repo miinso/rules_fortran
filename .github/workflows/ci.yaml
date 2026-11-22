@@ -10,6 +10,11 @@ on:
     paths-ignore:
       - '.github/workflows/docs.yaml'
 
+# a new push to a pr cancels its older run; master runs always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     strategy:
@@ -43,11 +48,15 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v7
-      - uses: bazel-contrib/setup-bazel@0.19.0
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
           bazelisk-cache: true
+          # action outputs, one cache per leg
+          disk-cache: ${{ matrix.os }}-${{ matrix.bazel }}
           repository-cache: true
           bazelisk-version: 1.x
+          # prs restore from master but dont save (10 GB repo cache limit)
+          cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Resolve repository cache
         run: echo "REPOSITORY_CACHE=$(bazel info repository_cache)" >> "$GITHUB_ENV"
       - name: Run unit and integration tests
@@ -66,7 +75,7 @@ jobs:
       USE_BAZEL_VERSION: 8.x
     steps:
       - uses: actions/checkout@v7
-      - uses: bazel-contrib/setup-bazel@0.19.0
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
           bazelisk-cache: true
           repository-cache: true
