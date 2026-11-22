@@ -4,6 +4,10 @@ load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//:defs.bzl", "fortran_binary", "fortran_library")
 
+# a flag no toolchain adds by itself (linux/macos toolchains already pass
+# -lpthread, which made presence checks vacuous there)
+_LINKOPT = "-lrules_fortran_test_marker"
+
 def _linkopts_propagate_to_binary_test_impl(ctx):
     """Test that linkopts from library propagate to binary link action."""
     env = analysistest.begin(ctx)
@@ -22,7 +26,7 @@ def _linkopts_propagate_to_binary_test_impl(ctx):
     link_action = link_actions[0]
     action_str = str(link_action.argv)
 
-    has_linkopt = "-lpthread" in action_str
+    has_linkopt = _LINKOPT in action_str
 
     asserts.true(
         env,
@@ -44,8 +48,8 @@ def _linkopts_appear_once_test_impl(ctx):
     link_actions = [a for a in actions if "Link" in a.mnemonic]
     asserts.true(env, len(link_actions) > 0, "Expected at least one link action")
 
-    count = len([arg for arg in link_actions[0].argv if arg == "-lpthread"])
-    asserts.equals(env, 1, count, "Expected -lpthread exactly once in link action")
+    count = len([arg for arg in link_actions[0].argv if arg == _LINKOPT])
+    asserts.equals(env, 1, count, "Expected {} exactly once in link action".format(_LINKOPT))
 
     return analysistest.end(env)
 
@@ -62,7 +66,7 @@ def _linkopts_in_ccinfo_test_impl(ctx):
     for linker_input in target[CcInfo].linking_context.linker_inputs.to_list():
         flags.extend(linker_input.user_link_flags)
 
-    asserts.true(env, "-lpthread" in flags, "Expected -lpthread in CcInfo user_link_flags")
+    asserts.true(env, _LINKOPT in flags, "Expected {} in CcInfo user_link_flags".format(_LINKOPT))
 
     return analysistest.end(env)
 
@@ -110,7 +114,7 @@ def linking_test_suite(name):
     fortran_library(
         name = "lib_with_linkopts",
         srcs = ["lib.f90"],
-        linkopts = ["-lpthread"],
+        linkopts = [_LINKOPT],
         tags = ["manual"],
     )
 
@@ -154,7 +158,7 @@ def linking_test_suite(name):
     # linkopts on a no-srcs library itself
     fortran_library(
         name = "linkopts_only",
-        linkopts = ["-lpthread"],
+        linkopts = [_LINKOPT],
         tags = ["manual"],
     )
 
