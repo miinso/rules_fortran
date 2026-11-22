@@ -3,16 +3,21 @@
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//:defs.bzl", "fortran_test")
 
-# given an uppercase-extension source and a define
-# then the preprocessor runs and the define selects the passing branch
+# Scenario: defines reach the preprocessor
+# Given a source with an uppercase extension
+# And a define that selects the passing branch
+# When the test is built and run
+# Then it exits 0
 fortran_test(
     name = "defines_reach_preprocessor_test",
     srcs = ["preprocessed.F90"],
     defines = ["EXPECTED_DEFINE"],
 )
 
-# given a source produced by another rule
-# then it compiles like a checked-in one
+# Scenario: a generated source compiles
+# Given a source written by another rule
+# When it is listed in srcs
+# Then it compiles and runs like a checked-in file
 write_file(
     name = "generated_src",
     out = "gen/generated.f90",
