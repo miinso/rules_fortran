@@ -46,8 +46,12 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
+          # action outputs, one cache per leg
+          disk-cache: ${{ matrix.os }}-${{ matrix.bazel }}
           repository-cache: true
           bazelisk-version: 1.x
+          # prs restore from master but dont save (10 GB repo cache limit)
+          cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Resolve repository cache
         run: echo "REPOSITORY_CACHE=$(bazel info repository_cache)" >> "$GITHUB_ENV"
       - name: Run unit and integration tests
