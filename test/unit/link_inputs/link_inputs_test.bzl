@@ -299,9 +299,15 @@ def link_inputs_test_suite(name):
     )
 
     # a library that exists only in shared form
+    # macos: a dylib records its own load path, and the loader uses that, not
+    # the rpath, unless it starts with @rpath. bazel 8+ sets it, 7.x does not
     cc_binary(
         name = "libshared_impl.so",
         srcs = ["shared.c"],
+        linkopts = select({
+            "@platforms//os:macos": ["-Wl,-install_name,@rpath/libshared_impl.so"],
+            "//conditions:default": [],
+        }),
         linkshared = True,
         tags = ["manual"],
         target_compatible_with = _NOT_WINDOWS,
