@@ -1,0 +1,14 @@
+"""BCR smoke test module.
+
+Consumes rules_fortran from the enclosing source tree. BCR presubmit runs this
+module in place inside the vendored (registry-patched) source, so `../..` is
+the exact tree a registry consumer gets.
+"""
+
+module(name = "smoke")
+
+bazel_dep(name = "rules_fortran", version = "0.0.0")
+local_path_override(
+    module_name = "rules_fortran",
+    path = "../..",
+)
