@@ -10,6 +10,11 @@ on:
     paths-ignore:
       - '.github/workflows/docs.yaml'
 
+# a new push to a pr cancels its older run; master runs always finish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     strategy:
