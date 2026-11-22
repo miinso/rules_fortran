@@ -8,9 +8,12 @@ FortranInfo = provider(
     fortran_library also provides.
     """,
     fields = {
-        "transitive_modules": "depset of module directories (Files) from this target and its transitive deps. " +
+        "transitive_modules": "depset of Files from this target and its transitive deps, each either a directory " +
+                              "of .mod files or a single .mod file. " +
                               "A target with several sources gives one directory holding all its .mod files; " +
-                              "a target with a single source gives the directory that source was compiled into.",
+                              "a target with a single source gives the directory that source was compiled into; " +
+                              "fortran_import gives its prebuilt .mod files. " +
+                              "To compile against them, search each directory, and the directory of each file.",
     },
 )
 
