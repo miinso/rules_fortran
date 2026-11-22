@@ -1,0 +1,5 @@
+"""Unit tests for the fortran_test rule."""
+
+load(":test_rule_test.bzl", "test_rule_test_suite")
+
+test_rule_test_suite(name = "test_rule_test")

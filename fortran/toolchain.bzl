@@ -25,7 +25,8 @@ def _make_runtime_ccinfo(ctx, cc_toolchain, feature_configuration, runtime_libs)
         # No runtime libs - return empty CcInfo
         return CcInfo(
             compilation_context = cc_common.create_compilation_context(),
-            linking_context = cc_common.create_linking_context(),
+            # linker_inputs cant be None, hence the empty depset
+            linking_context = cc_common.create_linking_context(linker_inputs = depset([])),
         )
 
     # Create library_to_link for each runtime library
