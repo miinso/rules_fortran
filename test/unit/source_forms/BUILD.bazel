@@ -1,0 +1,5 @@
+"""Unit tests for source form and preprocessing selection."""
+
+load(":source_forms_test.bzl", "source_forms_test_suite")
+
+source_forms_test_suite(name = "source_forms_test")

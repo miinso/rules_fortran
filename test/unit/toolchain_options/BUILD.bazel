@@ -1,0 +1,5 @@
+"""Unit tests for fortran_toolchain options."""
+
+load(":toolchain_options_test.bzl", "toolchain_options_test_suite")
+
+toolchain_options_test_suite(name = "toolchain_options_test")
