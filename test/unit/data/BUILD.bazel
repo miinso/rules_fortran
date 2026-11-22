@@ -1,0 +1,5 @@
+"""Unit tests for the data attribute."""
+
+load(":data_test.bzl", "data_test_suite")
+
+data_test_suite(name = "data_test")

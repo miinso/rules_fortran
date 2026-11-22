@@ -145,9 +145,10 @@ def _fortran_binary_impl(ctx):
 
     # Create runfiles
     # See: https://bazel.build/extending/rules#runfiles
-    runfiles = ctx.runfiles(files = [executable] + dll_copies)
+    runfiles = ctx.runfiles(files = [executable] + dll_copies + ctx.files.data)
     for dep in ctx.attr.deps:
         runfiles = runfiles.merge(ctx.runfiles(transitive_files = dep[DefaultInfo].default_runfiles.files))
+    runfiles = runfiles.merge_all([target[DefaultInfo].default_runfiles for target in ctx.attr.data])
 
     return [
         DefaultInfo(
@@ -175,6 +176,10 @@ fortran_binary = rule(
     attrs = {
         "copts": attr.string_list(
             doc = "Additional compiler options.",
+        ),
+        "data": attr.label_list(
+            allow_files = True,
+            doc = "Files needed at run time, added to the runfiles.",
         ),
         "defines": attr.string_list(
             doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",

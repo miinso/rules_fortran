@@ -141,8 +141,15 @@ def _fortran_library_impl(ctx):
         compilation_context = cc_common.create_compilation_context()
         linking_context = cc_common.create_linking_context(linker_inputs = depset([]))  # can't be Null, hence the empty depset
 
+    # runfiles: own data + whatever deps and data targets need at run time,
+    # so a binary linking this library gets them too
+    runfiles = ctx.runfiles(files = ctx.files.data).merge_all([
+        target[DefaultInfo].default_runfiles
+        for target in ctx.attr.deps + ctx.attr.data
+    ])
+
     return [
-        DefaultInfo(files = depset(output_files)),
+        DefaultInfo(files = depset(output_files), runfiles = runfiles),
         FortranInfo(
             transitive_sources = depset(
                 direct = ctx.files.srcs,
@@ -196,6 +203,10 @@ fortran_library = rule(
     attrs = {
         "copts": attr.string_list(
             doc = "Additional compiler options to pass to the Fortran compiler.",
+        ),
+        "data": attr.label_list(
+            allow_files = True,
+            doc = "Files needed at run time. Added to the runfiles of every binary or test that links this library.",
         ),
         "defines": attr.string_list(
             doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",
