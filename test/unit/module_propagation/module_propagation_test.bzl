@@ -68,7 +68,7 @@ def _same_basename_sources_test_impl(ctx):
     env = analysistest.begin(ctx)
     target = analysistest.target_under_test(env)
 
-    module_dirs = target[FortranInfo].module_map.values()
+    module_dirs = target[FortranInfo].transitive_modules.to_list()
     asserts.equals(
         env,
         3,

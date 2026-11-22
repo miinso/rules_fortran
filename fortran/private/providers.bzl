@@ -1,19 +1,15 @@
 """Fortran providers."""
 
 FortranInfo = provider(
-    doc = """Provider for Fortran compilation information.
-    
-    This provider is used to propagate information about compiled Fortran
-    code, including module files, object files, and transitive dependencies.
+    doc = """What a Fortran target offers to the compile step of its dependents.
+
+    Only compile-time information lives here. Everything needed to link
+    (archives, linkopts, the Fortran runtime) is carried by CcInfo, which
+    fortran_library also provides.
     """,
     fields = {
-        "compile_flags": "list of this target's own copts (not transitive; informational, the rules do not read it)",
-        "link_flags": "list of this target's own linkopts (not transitive; consumers get the transitive set from CcInfo user_link_flags)",
-        "module_map": "dict keyed by module directory path; each value is that module directory (0 or more .mod files)",
-        "transitive_libraries": "depset of static library files (.a)",
-        "transitive_modules": "depset of module files (.mod)",
-        "transitive_objects": "depset of object files (.o)",
-        "transitive_sources": "depset of source files (for building)",
+        "transitive_modules": "depset of module directories (Files) from this target and its transitive deps. " +
+                              "One directory per compiled source, holding the 0 or more .mod files it produced.",
     },
 )
 

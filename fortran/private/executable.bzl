@@ -21,7 +21,7 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     # modules come from FortranInfo; everything link-related comes from CcInfo
     # only (fortran_library puts its archive, linkopts and the runtime there),
     # so the link line keeps the one order CcInfo already got right.
-    module_map = {}
+    dep_modules = []
     link_flags = []
     cc_libraries = []
     cc_objects = []
@@ -30,7 +30,7 @@ def fortran_executable_impl(ctx, mnemonic, kind):
 
     for dep in ctx.attr.deps:
         if FortranInfo in dep:
-            module_map.update(dep[FortranInfo].module_map)
+            dep_modules.append(dep[FortranInfo].transitive_modules)
         if CcInfo in dep:
             cc_linker_inputs.append(dep[CcInfo].linking_context.linker_inputs)
 
@@ -72,12 +72,13 @@ def fortran_executable_impl(ctx, mnemonic, kind):
 
     # Compile sources
     fortran_objects = []
+    modules_from_deps = depset(transitive = dep_modules)
     for src in ctx.files.srcs:
         result = compile_fortran(
             ctx = ctx,
             toolchain = toolchain,
             src = src,
-            module_map = module_map,
+            modules = modules_from_deps,
             copts = ctx.attr.copts,
             defines = ctx.attr.defines,
             includes = ctx.attr.includes,
