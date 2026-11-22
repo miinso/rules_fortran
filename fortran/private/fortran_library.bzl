@@ -13,7 +13,7 @@ This rule:
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load(":compile.bzl", "check_defines", "compile_fortran")
+load(":compile.bzl", "COMPILE_ATTRS", "compile_sources")
 load(":providers.bzl", "FortranInfo")
 
 def _fortran_library_impl(ctx):
@@ -24,30 +24,9 @@ def _fortran_library_impl(ctx):
     """
     toolchain = ctx.toolchains["@rules_fortran//fortran:toolchain_type"].fortran
 
-    # module directories of deps: sources that USE a module need its `*.mod`
-    # file at compile time
-    dep_modules = [dep[FortranInfo].transitive_modules for dep in ctx.attr.deps if FortranInfo in dep]
-    modules_from_deps = depset(transitive = dep_modules)
-
-    # Compile each source: `*.f90` -> `*.o` (always) + `*.mod` (if source defines a MODULE)
-    # https://fortran-lang.org/learn/building_programs/include_files/#include-files-and-modules
-    objects = []  # `*.o` files for archiving
-    modules = []  # module directories for dependents, one per source (0 or more .mod files each)
-
-    check_defines(ctx.files.srcs, ctx.attr.defines)
-    for src in ctx.files.srcs:
-        result = compile_fortran(
-            ctx = ctx,
-            toolchain = toolchain,
-            src = src,
-            modules = modules_from_deps,
-            copts = ctx.attr.copts,
-            defines = ctx.attr.defines,
-            includes = ctx.attr.includes,
-            hdrs = ctx.files.hdrs,
-        )
-        objects.append(result.object)
-        modules.append(result.module)
+    compiled = compile_sources(ctx, toolchain)
+    objects = compiled.objects  # `*.o` files for archiving
+    modules = compiled.modules  # module directories for dependents, one per source (0 or more .mod files each)
 
     # Archive compiled objects into static library (`*.a` file)
     archive = None
@@ -134,7 +113,7 @@ def _fortran_library_impl(ctx):
         FortranInfo(
             transitive_modules = depset(
                 direct = modules,
-                transitive = dep_modules,
+                transitive = compiled.dep_modules,
             ),
         ),
         CcInfo(
@@ -165,34 +144,13 @@ fortran_library = rule(
             deps = [":math", ":advanced"],
         )
     """,
-    attrs = {
-        "copts": attr.string_list(
-            doc = "Additional compiler options to pass to the Fortran compiler.",
-        ),
+    attrs = COMPILE_ATTRS | {
         "data": attr.label_list(
             allow_files = True,
             doc = "Files needed at run time. Added to the runfiles of every binary or test that links this library.",
         ),
-        "defines": attr.string_list(
-            doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",
-        ),
-        "deps": attr.label_list(
-            providers = [[FortranInfo], [CcInfo]],
-            doc = "List of fortran_library or cc_library targets that this library depends on.",
-        ),
-        "hdrs": attr.label_list(
-            allow_files = [".inc", ".mod"],
-            doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules.",
-        ),
-        "includes": attr.string_list(
-            doc = "List of include directories to add to the compile line.",
-        ),
         "linkopts": attr.string_list(
             doc = "Additional linker options (propagated to binaries).",
-        ),
-        "srcs": attr.label_list(
-            allow_files = [".f", ".f90", ".f95", ".f03", ".f08", ".F", ".F90", ".F95", ".F03", ".F08"],
-            doc = "List of Fortran source files to compile.",
         ),
         # https://bazel.build/versions/8.4.0/configure/integrate-cpp
         "_cc_toolchain": attr.label(

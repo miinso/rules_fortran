@@ -1,8 +1,7 @@
 """Shared implementation of the executable rules (fortran_binary, fortran_test)."""
 
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load(":compile.bzl", "check_defines", "compile_fortran")
-load(":providers.bzl", "FortranInfo")
+load(":compile.bzl", "COMPILE_ATTRS", "compile_sources")
 
 def fortran_executable_impl(ctx, mnemonic, kind):
     """Compiles srcs and links them with deps into an executable.
@@ -21,7 +20,6 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     # modules come from FortranInfo; everything link-related comes from CcInfo
     # only (fortran_library puts its archive, linkopts and the runtime there),
     # so the link line keeps the one order CcInfo already got right.
-    dep_modules = []
     link_flags = []
     cc_libraries = []
     cc_objects = []
@@ -29,8 +27,6 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     cc_linker_inputs = []
 
     for dep in ctx.attr.deps:
-        if FortranInfo in dep:
-            dep_modules.append(dep[FortranInfo].transitive_modules)
         if CcInfo in dep:
             cc_linker_inputs.append(dep[CcInfo].linking_context.linker_inputs)
 
@@ -71,21 +67,7 @@ def fortran_executable_impl(ctx, mnemonic, kind):
         link_flags.extend(linker_input.user_link_flags)
 
     # Compile sources
-    fortran_objects = []
-    modules_from_deps = depset(transitive = dep_modules)
-    check_defines(ctx.files.srcs, ctx.attr.defines)
-    for src in ctx.files.srcs:
-        result = compile_fortran(
-            ctx = ctx,
-            toolchain = toolchain,
-            src = src,
-            modules = modules_from_deps,
-            copts = ctx.attr.copts,
-            defines = ctx.attr.defines,
-            includes = ctx.attr.includes,
-            hdrs = ctx.files.hdrs,
-        )
-        fortran_objects.append(result.object)
+    fortran_objects = compile_sources(ctx, toolchain).objects
 
     # Libraries stay in CcInfo's topological order (dependents before their
     # dependencies), which single-pass linkers like GNU ld need.
@@ -190,40 +172,19 @@ TEST_ONLY_ATTRS = {
 }
 
 # attrs common to fortran_binary and fortran_test
-EXECUTABLE_ATTRS = {
+EXECUTABLE_ATTRS = COMPILE_ATTRS | {
     "_windows_constraint": attr.label(
         default = Label("@platforms//os:windows"),
-    ),
-    "copts": attr.string_list(
-        doc = "Additional compiler options.",
     ),
     "data": attr.label_list(
         allow_files = True,
         doc = "Files needed at run time, added to the runfiles.",
     ),
-    "defines": attr.string_list(
-        doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",
-    ),
     "env": attr.string_dict(
         doc = "Environment variables to set when the executable is run by `bazel run` or `bazel test`. " +
               "Values may use `$(location)` of targets in `data`.",
     ),
-    "deps": attr.label_list(
-        providers = [[FortranInfo], [CcInfo]],
-        doc = "List of fortran_library or cc_library targets to link against.",
-    ),
-    "hdrs": attr.label_list(
-        allow_files = [".inc", ".mod"],
-        doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules.",
-    ),
-    "includes": attr.string_list(
-        doc = "List of include directories to add to the compile line.",
-    ),
     "linkopts": attr.string_list(
         doc = "Additional linker options.",
-    ),
-    "srcs": attr.label_list(
-        allow_files = [".f", ".f90", ".f95", ".f03", ".f08", ".F", ".F90", ".F95", ".F03", ".F08"],
-        doc = "List of Fortran source files to compile.",
     ),
 }
