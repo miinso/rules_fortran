@@ -21,6 +21,7 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     # only (fortran_library puts its archive, linkopts and the runtime there),
     # so the link line keeps the one order CcInfo already got right.
     link_flags = []
+    whole_archives = {}
     cc_libraries = []
     cc_objects = []
     cc_dynamic_libs = []
@@ -51,11 +52,13 @@ def fortran_executable_impl(ctx, mnemonic, kind):
                     # alwayslink: every object must be linked, even unreferenced ones.
                     # the linker only pulls needed members out of an archive, so pass
                     # the objects in its place.
-                    # TODO: alwayslink archives without objects (cc_import) need
-                    # whole-archive flags
                     cc_objects.extend(objects)
                 else:
                     cc_libraries.append(archive)
+                    if library.alwayslink:
+                        # no objects to pass (fortran_library, cc_import): the
+                        # archive itself is linked whole
+                        whole_archives[archive] = True
             elif library.interface_library != None:  # .lib on windows
                 cc_libraries.append(library.interface_library)
                 if library.dynamic_library != None:
@@ -85,6 +88,9 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     is_windows = ctx.target_platform_has_constraint(
         ctx.attr._windows_constraint[platform_common.ConstraintValueInfo],
     )
+    is_macos = ctx.target_platform_has_constraint(
+        ctx.attr._macos_constraint[platform_common.ConstraintValueInfo],
+    )
     executable = ctx.actions.declare_file(ctx.label.name + (".exe" if is_windows else ""))
 
     args = ctx.actions.args()
@@ -97,9 +103,19 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     # rules_cc did use a set to dedup libraries
     seen_libraries = {}
     for lib in all_libraries:
-        if lib not in seen_libraries:
+        if lib in seen_libraries:
+            continue
+        seen_libraries[lib] = True
+        if lib not in whole_archives:
             args.add(lib)
-            seen_libraries[lib] = True
+        elif is_windows:
+            args.add(lib, format = "-Wl,/WHOLEARCHIVE:%s")
+        elif is_macos:
+            args.add(lib, format = "-Wl,-force_load,%s")
+        else:
+            args.add("-Wl,--whole-archive")
+            args.add(lib)
+            args.add("-Wl,--no-whole-archive")
 
     args.add("-o", executable.path)
     args.add_all(toolchain.linker_flags)
@@ -173,6 +189,9 @@ TEST_ONLY_ATTRS = {
 
 # attrs common to fortran_binary and fortran_test
 EXECUTABLE_ATTRS = COMPILE_ATTRS | {
+    "_macos_constraint": attr.label(
+        default = Label("@platforms//os:macos"),
+    ),
     "_windows_constraint": attr.label(
         default = Label("@platforms//os:windows"),
     ),

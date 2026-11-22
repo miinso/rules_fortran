@@ -8,8 +8,8 @@ load("//fortran:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
 _SHARED_LIB_EXTENSIONS = ["so", "dll", "dylib"]
 
 def _link_argv(env):
-    actions = [a for a in analysistest.target_actions(env) if a.mnemonic == "FortranLink"]
-    asserts.equals(env, 1, len(actions), "Expected one FortranLink action")
+    actions = [a for a in analysistest.target_actions(env) if a.mnemonic in ["FortranLink", "FortranLinkTest"]]
+    asserts.equals(env, 1, len(actions), "Expected one link action")
     return actions[0].argv
 
 def _cc_objects(argv, lib_name):
@@ -86,6 +86,21 @@ def _dep_runfiles_symlinks_kept_test_impl(ctx):
     return analysistest.end(env)
 
 dep_runfiles_symlinks_kept_test = analysistest.make(_dep_runfiles_symlinks_kept_test_impl)
+
+def _whole_archive_test_impl(ctx):
+    """Test that an alwayslink fortran_library is linked as a whole archive."""
+    env = analysistest.begin(ctx)
+    argv = _link_argv(env)
+
+    # gnu ld / wasm-ld bracket the archive, macos and windows take it in one flag
+    markers = ["--whole-archive", "-force_load", "/WHOLEARCHIVE:"]
+    marked = [arg for arg in argv if len([m for m in markers if m in arg]) > 0]
+    asserts.true(env, len(marked) > 0, "Expected a whole-archive flag in {}".format(argv))
+    asserts.equals(env, 1, len([arg for arg in argv if "libblock_data.a" in arg]), "Expected the archive once")
+
+    return analysistest.end(env)
+
+whole_archive_test = analysistest.make(_whole_archive_test_impl)
 
 def _executable_name_test_impl(ctx):
     """Test that the executable is named for the target platform."""
@@ -222,6 +237,60 @@ def link_inputs_test_suite(name):
         deps = [":glue_c", ":glue_base"],
     )
 
+    fortran_library(
+        name = "block_data",
+        srcs = ["block_data.f90"],
+        alwayslink = True,
+        tags = ["manual"],
+    )
+
+    # Scenario: a whole-archive link works on every platform
+    # Given a fortran_library with alwayslink that only holds a BLOCK DATA unit
+    # And a program that reads the COMMON block but never names that unit
+    # When the program is built and run
+    # Then the platform's linker accepts the whole-archive flag
+    # And the COMMON block holds the initialized value
+    fortran_test(
+        name = "block_data_is_linked_test",
+        srcs = ["block_data_main.f90"],
+        deps = [":block_data"],
+    )
+
+    fortran_library(
+        name = "unreferenced",
+        srcs = ["unreferenced.f90"],
+        alwayslink = True,
+        tags = ["manual"],
+    )
+
+    cc_library(
+        name = "weak_probe",
+        srcs = ["weak_probe.c"],
+        tags = ["manual"],
+        target_compatible_with = ["@platforms//os:linux"],
+    )
+
+    # Scenario: alwayslink keeps an object nothing references
+    # Given a fortran_library with alwayslink whose routine is only weakly referenced
+    # When a program is built and run
+    # Then the routine is in the binary and returns its value
+    # (linux only: msvc has no weak references, and macos rejects undefined weak ones)
+    fortran_test(
+        name = "alwayslink_keeps_unreferenced_test",
+        srcs = ["weak_probe_main.f90"],
+        target_compatible_with = ["@platforms//os:linux"],
+        deps = [":weak_probe", ":unreferenced"],
+    )
+
+    # Scenario: an alwayslink fortran library is linked whole
+    # Given a fortran_test that depends on a fortran_library with alwayslink
+    # When the link line is built
+    # Then the archive is passed with the platform's whole-archive flag
+    whole_archive_test(
+        name = "whole_archive_test",
+        target_under_test = ":block_data_is_linked_test",
+    )
+
     _symlink_dep(
         name = "symlink_dep",
         target = "payload.txt",
@@ -247,7 +316,10 @@ def link_inputs_test_suite(name):
     native.test_suite(
         name = name,
         tests = [
+            ":alwayslink_keeps_unreferenced_test",
             ":alwayslink_objects_linked_test",
+            ":block_data_is_linked_test",
+            ":whole_archive_test",
             ":cc_archive_without_objects_test",
             ":dep_runfiles_symlinks_kept_test",
             ":executable_name_test",
