@@ -30,7 +30,8 @@ COMPILE_ATTRS = {
     "hdrs": attr.label_list(
         allow_files = [".inc", ".mod"],
         doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules. " +
-              "Used by this target's srcs only; they are not passed on to dependents.",
+              "Used by this target's srcs only; they are not passed on to dependents " +
+              "(for prebuilt modules that dependents need too, see fortran_import).",
     ),
     "includes": attr.string_list(
         doc = "List of include directories, relative to this package, to add to the compile line. " +
