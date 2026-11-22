@@ -1,0 +1,9 @@
+load("@rules_fortran//fortran:defs.bzl", "fortran_library")
+
+fortran_library(
+    name = "physics",
+    srcs = ["physics.f90"],
+    hdrs = ["include/constants.inc"],
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+)

@@ -124,6 +124,10 @@ def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includ
             inc_path = inc
         if inc_path == "." or inc_path == "":
             fail("includes resolves to workspace root, which would expose the entire workspace")
+
+        # targets in an external repo live under external/<repo> in the execroot
+        if ctx.label.workspace_root:
+            inc_path = ctx.label.workspace_root + "/" + inc_path
         args.add("-I" + inc_path)
 
     # Compile command
