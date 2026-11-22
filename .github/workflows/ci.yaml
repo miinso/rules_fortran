@@ -52,6 +52,8 @@ jobs:
         run: echo "REPOSITORY_CACHE=$(bazel info repository_cache)" >> "$GITHUB_ENV"
       - name: Run unit and integration tests
         run: bazel test //test/... //test/integration:basic_test --sandbox_writable_path="$REPOSITORY_CACHE" --verbose_failures --test_output=all
+      - name: Run bcr smoke module
+        run: cd e2e/smoke && bazel test //... --verbose_failures --test_output=all
       - name: Run examples
         # TODO: switch to //... since we don't want to miss any
         run: cd examples && bazel test //basic:all //blas:all //interop:all //omp:all --verbose_failures --test_output=all
