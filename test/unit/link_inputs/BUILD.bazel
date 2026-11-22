@@ -1,0 +1,5 @@
+"""Unit tests for what the executable rules put on the link line."""
+
+load(":link_inputs_test.bzl", "link_inputs_test_suite")
+
+link_inputs_test_suite(name = "link_inputs_test")
