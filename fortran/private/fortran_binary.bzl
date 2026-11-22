@@ -15,41 +15,45 @@ def _fortran_binary_impl(ctx):
     cc_libraries = []
     cc_objects = []
     cc_dynamic_libs = []
+    cc_linker_inputs = []
 
     for dep in ctx.attr.deps:
         # Handle Fortran dependencies
         if FortranInfo in dep:
             transitive_libraries.append(dep[FortranInfo].transitive_libraries)
             module_map.update(dep[FortranInfo].module_map)
-            link_flags.extend(dep[FortranInfo].link_flags)
+            # linkopts arrive via CcInfo user_link_flags below (transitive)
 
         # Handle C/C++ dependencies
         if CcInfo in dep:
-            linking_context = dep[CcInfo].linking_context
-            for linker_input in linking_context.linker_inputs.to_list():
-                # Collect libraries
-                for library in linker_input.libraries:
-                    # prefer pic static > static > interface lib > dynamic
-                    if library.pic_static_library != None:
-                        cc_libraries.append(library.pic_static_library)
-                    elif library.static_library != None:
-                        cc_libraries.append(library.static_library)
-                    elif library.interface_library != None:  # .lib on windows
-                        cc_libraries.append(library.interface_library)
-                    elif library.dynamic_library != None:
-                        cc_libraries.append(library.dynamic_library)
+            cc_linker_inputs.append(dep[CcInfo].linking_context.linker_inputs)
 
-                    # track DLLs for app-local deployment (windows)
-                    if library.dynamic_library != None:
-                        cc_dynamic_libs.append(library.dynamic_library)
+    # merge first: a linker input shared by several deps is visited once,
+    # so its libraries and link flags are not repeated
+    for linker_input in depset(transitive = cc_linker_inputs, order = "topological").to_list():
+        # Collect libraries
+        for library in linker_input.libraries:
+            # prefer pic static > static > interface lib > dynamic
+            if library.pic_static_library != None:
+                cc_libraries.append(library.pic_static_library)
+            elif library.static_library != None:
+                cc_libraries.append(library.static_library)
+            elif library.interface_library != None:  # .lib on windows
+                cc_libraries.append(library.interface_library)
+            elif library.dynamic_library != None:
+                cc_libraries.append(library.dynamic_library)
 
-                    # Collect object files
-                    if hasattr(library, "objects") and library.objects != None:
-                        cc_objects.extend(library.objects)
+            # track DLLs for app-local deployment (windows)
+            if library.dynamic_library != None:
+                cc_dynamic_libs.append(library.dynamic_library)
 
-                # Collect user link flags
-                if hasattr(linker_input, "user_link_flags"):
-                    link_flags.extend(linker_input.user_link_flags)
+            # Collect object files
+            if hasattr(library, "objects") and library.objects != None:
+                cc_objects.extend(library.objects)
+
+        # Collect user link flags
+        if hasattr(linker_input, "user_link_flags"):
+            link_flags.extend(linker_input.user_link_flags)
 
     # Compile sources
     fortran_objects = []

@@ -98,17 +98,22 @@ def _fortran_library_impl(ctx):
     # CcInfo: Allows C/C++ rules (cc_binary, cc_library) to link against this Fortran library
     cc_infos = []
 
-    if archive:
-        # 1. create CcInfo for this library's archive
-        cc_toolchain = find_cc_toolchain(ctx)
-        library_to_link = cc_common.create_library_to_link(
-            actions = ctx.actions,
-            feature_configuration = cc_common.configure_features(ctx = ctx, cc_toolchain = cc_toolchain),
-            static_library = archive,
-        )
+    if archive or ctx.attr.linkopts:
+        # 1. create CcInfo for this library's archive and linkopts
+        # linkopts ride in the linker input so they reach every transitive
+        # consumer (fortran_binary, cc_binary), once per library
+        libraries_to_link = []
+        if archive:
+            cc_toolchain = find_cc_toolchain(ctx)
+            libraries_to_link.append(cc_common.create_library_to_link(
+                actions = ctx.actions,
+                feature_configuration = cc_common.configure_features(ctx = ctx, cc_toolchain = cc_toolchain),
+                static_library = archive,
+            ))
         linker_input = cc_common.create_linker_input(
             owner = ctx.label,
-            libraries = depset([library_to_link]),
+            libraries = depset(libraries_to_link),
+            user_link_flags = ctx.attr.linkopts,
             # runtime libs are in toolchain, not here
         )
         linking_context = cc_common.create_linking_context(linker_inputs = depset([linker_input]))
@@ -117,6 +122,7 @@ def _fortran_library_impl(ctx):
             linking_context = linking_context,
         ))
 
+    if archive:
         # 2. add toolchain runtime CcInfo (once, from toolchain)
         cc_infos.append(toolchain.runtime_ccinfo)
 
