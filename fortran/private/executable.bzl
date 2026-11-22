@@ -1,7 +1,7 @@
 """Shared implementation of the executable rules (fortran_binary, fortran_test)."""
 
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load(":compile.bzl", "compile_fortran")
+load(":compile.bzl", "check_defines", "compile_fortran")
 load(":providers.bzl", "FortranInfo")
 
 def fortran_executable_impl(ctx, mnemonic, kind):
@@ -73,6 +73,7 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     # Compile sources
     fortran_objects = []
     modules_from_deps = depset(transitive = dep_modules)
+    check_defines(ctx.files.srcs, ctx.attr.defines)
     for src in ctx.files.srcs:
         result = compile_fortran(
             ctx = ctx,
@@ -162,13 +163,31 @@ def fortran_executable_impl(ctx, mnemonic, kind):
         for target in ctx.attr.deps + ctx.attr.data
     ])
 
+    # env for `bazel run` and `bazel test`; values may use $(location) of data
+    environment = {
+        key: ctx.expand_location(value, ctx.attr.data)
+        for key, value in ctx.attr.env.items()
+    }
+
     return [
         DefaultInfo(
             files = depset([executable]),
             executable = executable,
             runfiles = runfiles,
         ),
+        RunEnvironmentInfo(
+            environment = environment,
+            # env_inherit exists on fortran_test only
+            inherited_environment = getattr(ctx.attr, "env_inherit", []),
+        ),
     ]
+
+# attrs only fortran_test has, on top of EXECUTABLE_ATTRS
+TEST_ONLY_ATTRS = {
+    "env_inherit": attr.string_list(
+        doc = "Names of environment variables to pass through from the environment `bazel test` runs in.",
+    ),
+}
 
 # attrs common to fortran_binary and fortran_test
 EXECUTABLE_ATTRS = {
@@ -184,6 +203,10 @@ EXECUTABLE_ATTRS = {
     ),
     "defines": attr.string_list(
         doc = "Preprocessor defines for .F files (e.g., ['_OPENMP', 'USE_MPI']).",
+    ),
+    "env": attr.string_dict(
+        doc = "Environment variables to set when the executable is run by `bazel run` or `bazel test`. " +
+              "Values may use `$(location)` of targets in `data`.",
     ),
     "deps": attr.label_list(
         providers = [[FortranInfo], [CcInfo]],

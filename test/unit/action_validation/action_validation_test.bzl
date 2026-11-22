@@ -135,6 +135,24 @@ includes_dotdot_rejected_test = analysistest.make(
     expect_failure = True,
 )
 
+def _defines_only_on_preprocessed_sources_test_impl(ctx):
+    """Test that a target mixing .f90 and .F90 passes defines to the .F90 compile only."""
+    env = analysistest.begin(ctx)
+
+    compile_actions = [a for a in analysistest.target_actions(env) if a.mnemonic == "FortranCompile"]
+    asserts.equals(env, 2, len(compile_actions), "Expected one FortranCompile action per source")
+
+    for action in compile_actions:
+        has_define = "-DUSE_MPI" in action.argv
+        preprocessed = len([arg for arg in action.argv if arg.endswith(".F90")]) > 0
+        asserts.equals(env, preprocessed, has_define, "defines belong on the preprocessed source only")
+
+    return analysistest.end(env)
+
+defines_only_on_preprocessed_sources_test = analysistest.make(
+    _defines_only_on_preprocessed_sources_test_impl,
+)
+
 def _defines_with_lowercase_extension_rejected_test_impl(ctx):
     """Test that defines with lowercase extension (.f90) is rejected."""
     env = analysistest.begin(ctx)
@@ -306,6 +324,23 @@ def action_validation_test_suite(name):
         target_under_test = ":lib_with_defines_lowercase",
     )
 
+    # Scenario: defines on a target that mixes source kinds
+    # Given a fortran_library with one .F90 and one .f90 source and a define
+    # When its compile actions are created
+    # Then the .F90 compile gets the define
+    # And the .f90 compile does not, and the target still analyzes
+    fortran_library(
+        name = "lib_with_defines_mixed",
+        srcs = ["simple.F90", "simple_regular.f90"],
+        defines = ["USE_MPI"],
+        tags = ["manual"],
+    )
+
+    defines_only_on_preprocessed_sources_test(
+        name = "defines_only_on_preprocessed_sources_test",
+        target_under_test = ":lib_with_defines_mixed",
+    )
+
     # Test hdrs attribute with .inc files (see #17)
     fortran_library(
         name = "lib_with_inc_hdrs",
@@ -341,6 +376,7 @@ def action_validation_test_suite(name):
             ":includes_appear_in_compile_action_test",
             ":module_paths_in_compile_action_test",
             ":includes_dotdot_rejected_test",
+            ":defines_only_on_preprocessed_sources_test",
             ":defines_with_lowercase_extension_rejected_test",
             ":hdrs_inc_appear_in_compile_action_test",
             ":hdrs_mod_appear_in_compile_action_test",

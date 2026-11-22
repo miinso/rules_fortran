@@ -26,6 +26,25 @@ def _test_attrs_reach_actions_test_impl(ctx):
 
 test_attrs_reach_actions_test = analysistest.make(_test_attrs_reach_actions_test_impl)
 
+def _run_environment_test_impl(ctx):
+    """Test that env and env_inherit are handed to bazel via RunEnvironmentInfo."""
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+
+    info = target[RunEnvironmentInfo]
+    asserts.equals(env, "expected", info.environment.get("RULES_FORTRAN_ENV_PROBE"))
+    asserts.equals(
+        env,
+        "test/unit/test_rule/include/consts.inc",
+        info.environment.get("CONSTS"),
+        "Expected $(location) in env to be expanded against data",
+    )
+    asserts.equals(env, ["HOME"], info.inherited_environment)
+
+    return analysistest.end(env)
+
+run_environment_test = analysistest.make(_run_environment_test_impl)
+
 def test_rule_test_suite(name):
     """Test suite for the fortran_test rule.
 
@@ -55,7 +74,35 @@ def test_rule_test_suite(name):
         target_under_test = ":test_with_attrs",
     )
 
+    # Scenario: env reaches the running test
+    # Given a fortran_test with a variable in env
+    # When the test runs
+    # Then the program sees that variable with that value
+    fortran_test(
+        name = "env_reaches_test_run_test",
+        srcs = ["env_check.f90"],
+        data = ["include/consts.inc"],
+        env = {
+            "CONSTS": "$(location include/consts.inc)",
+            "RULES_FORTRAN_ENV_PROBE": "expected",
+        },
+        env_inherit = ["HOME"],
+    )
+
+    # Scenario: env and env_inherit are declared to bazel
+    # Given a fortran_test with env, a $(location) value and env_inherit
+    # When its providers are read
+    # Then RunEnvironmentInfo carries the values, the expanded path and the inherited names
+    run_environment_test(
+        name = "run_environment_test",
+        target_under_test = ":env_reaches_test_run_test",
+    )
+
     native.test_suite(
         name = name,
-        tests = [":test_attrs_reach_actions_test"],
+        tests = [
+            ":env_reaches_test_run_test",
+            ":run_environment_test",
+            ":test_attrs_reach_actions_test",
+        ],
     )
