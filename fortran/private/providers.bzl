@@ -9,7 +9,8 @@ FortranInfo = provider(
     """,
     fields = {
         "transitive_modules": "depset of module directories (Files) from this target and its transitive deps. " +
-                              "One directory per compiled source, holding the 0 or more .mod files it produced.",
+                              "A target with several sources gives one directory holding all its .mod files; " +
+                              "a target with a single source gives the directory that source was compiled into.",
     },
 )
 

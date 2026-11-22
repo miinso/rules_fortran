@@ -26,7 +26,7 @@ def _fortran_library_impl(ctx):
 
     compiled = compile_sources(ctx, toolchain)
     objects = compiled.objects  # `*.o` files for archiving
-    modules = compiled.modules  # module directories for dependents, one per source (0 or more .mod files each)
+    modules = compiled.modules  # module directories for dependents (0 or more .mod files each)
 
     # Archive compiled objects into static library (`*.a` file)
     archive = None
