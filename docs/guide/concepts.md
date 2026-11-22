@@ -85,6 +85,19 @@ The `deps` attribute makes all modules from dependencies available when compilin
 
 Unlike C/C++ headers which are just textual includes, Fortran modules are compiled artifacts. The build system must ensure modules are compiled before their users - this is handled automatically through `deps`.
 
+::: warning One limit to know about
+Ordering is handled *between targets*, not inside one. Every source in `srcs` is compiled on its own and only sees modules that come from `deps`. So this does not build:
+
+```starlark
+fortran_library(
+    name = "solver",
+    srcs = ["types.f90", "solver.f90"],  # solver.f90 has `use types`
+)
+```
+
+Put the module in its own `fortran_library` and depend on it, as in the example above.
+:::
+
 ### C Interoperability
 
 rules_fortran provides `CcInfo` from `fortran_library`, enabling:
