@@ -87,6 +87,24 @@ def _dep_runfiles_symlinks_kept_test_impl(ctx):
 
 dep_runfiles_symlinks_kept_test = analysistest.make(_dep_runfiles_symlinks_kept_test_impl)
 
+def _executable_name_test_impl(ctx):
+    """Test that the executable is named for the target platform."""
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+
+    is_windows = ctx.target_platform_has_constraint(
+        ctx.attr._windows_constraint[platform_common.ConstraintValueInfo],
+    )
+    expected = "bin_with_cc_deps" + (".exe" if is_windows else "")
+    asserts.equals(env, expected, target[DefaultInfo].files_to_run.executable.basename)
+
+    return analysistest.end(env)
+
+executable_name_test = analysistest.make(
+    _executable_name_test_impl,
+    attrs = {"_windows_constraint": attr.label(default = Label("@platforms//os:windows"))},
+)
+
 def _symlink_dep_impl(ctx):
     # a linkable dep with nothing to link, whose runfiles hold a symlink
     return [
@@ -151,6 +169,16 @@ def link_inputs_test_suite(name):
     # Then no shared library is among them
     no_shared_libs_in_runfiles_test(
         name = "no_shared_libs_in_runfiles_test",
+        target_under_test = ":bin_with_cc_deps",
+    )
+
+    # Scenario: the executable is named for its platform
+    # Given a fortran_binary
+    # When it is built for windows
+    # Then its file ends in .exe
+    # And on any other platform it has no extension
+    executable_name_test(
+        name = "executable_name_test",
         target_under_test = ":bin_with_cc_deps",
     )
 
@@ -222,6 +250,7 @@ def link_inputs_test_suite(name):
             ":alwayslink_objects_linked_test",
             ":cc_archive_without_objects_test",
             ":dep_runfiles_symlinks_kept_test",
+            ":executable_name_test",
             ":fortran_archive_after_cc_dependent_test",
             ":glue_calls_fortran_test",
             ":no_shared_libs_in_runfiles_test",

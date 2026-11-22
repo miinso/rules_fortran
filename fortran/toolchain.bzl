@@ -94,7 +94,6 @@ def _fortran_toolchain_impl(ctx):
         linker_flags = ctx.attr.linker_flags,
         preprocessor_flag = ctx.attr.preprocessor_flag,
         preprocessor_flags = ctx.attr.preprocessor_flags,
-        supports_module_path = ctx.attr.supports_module_path,
         module_flag_format = ctx.attr.module_flag_format,
         runtime_libraries = runtime_lib_files,
         runtime_ccinfo = runtime_ccinfo,
@@ -164,7 +163,8 @@ fortran_toolchain = rule(
         ),
         "module_flag_format": attr.string(
             default = "-J{}",
-            doc = "Format string for module path flag. Use {} as placeholder for path.",
+            doc = "Format string for the flag that sets the module output directory. Use {} as placeholder for the path. " +
+                  "The compiler must have such a flag: each source writes its .mod files into its own directory.",
         ),
         "preprocessor_flag": attr.string(
             default = "-cpp",
@@ -177,10 +177,6 @@ fortran_toolchain = rule(
         "runtime_libraries": attr.label_list(
             default = [],
             doc = "flang/clang runtime libraries (flang_rt, clang_rt) for C/Fortran interop.",
-        ),
-        "supports_module_path": attr.bool(
-            default = True,
-            doc = "Whether the compiler supports specifying module output directory.",
         ),
         "tool_deps": attr.label_list(
             allow_files = True,

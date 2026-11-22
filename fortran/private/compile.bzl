@@ -95,15 +95,12 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
         )
 
     # Module output directory - where this compilation writes .mod files
-    if toolchain.supports_module_path:
-        flag = toolchain.module_flag_format.format(module_output_dir.path)
-        args.add(flag)
+    args.add(toolchain.module_flag_format.format(module_output_dir.path))
 
     # Module search paths from dependencies.
     # the depset is expanded at execution time, so a large dependency graph
     # is not flattened once per source during analysis
-    if toolchain.supports_module_path:
-        args.add_all(modules, format_each = "-I%s", expand_directories = False)
+    args.add_all(modules, format_each = "-I%s", expand_directories = False)
 
     # Include directories (resolved relative to package, like rules_cc)
     # Validate against "." and ".." to protect workspace (see cc_helper.bzl#L827-L833)

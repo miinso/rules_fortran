@@ -27,6 +27,5 @@ FortranToolchainInfo = provider(
         "preprocessor_flags": "Default preprocessor flags (e.g., ['-D_OPENMP'])",
         "runtime_ccinfo": "CcInfo provider containing Fortran runtime libraries",
         "runtime_libraries": "flang/clang runtime libraries needed for C/Fortran interop",
-        "supports_module_path": "Whether compiler supports -J flag for modules",
     },
 )

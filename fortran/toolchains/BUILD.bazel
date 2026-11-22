@@ -22,7 +22,6 @@ fortran_toolchain(
     ],
     module_flag_format = "-J{}",
     runtime_libraries = ["@flang_linux_x86_64//:runtime_libraries"],
-    supports_module_path = True,
     tool_deps = ["@flang_linux_x86_64//:compiler_files"],
 )
 
@@ -58,7 +57,6 @@ fortran_toolchain(
     ],
     module_flag_format = "-J{}",
     runtime_libraries = ["@flang_linux_aarch64//:runtime_libraries"],
-    supports_module_path = True,
     tool_deps = ["@flang_linux_aarch64//:compiler_files"],
 )
 
@@ -95,7 +93,6 @@ fortran_toolchain(
     ],
     module_flag_format = "-J{}",
     runtime_libraries = ["@flang_macos_x86_64//:runtime_libraries"],
-    supports_module_path = True,
     tool_deps = ["@flang_macos_x86_64//:compiler_files"],
 )
 
@@ -132,7 +129,6 @@ fortran_toolchain(
     ],
     module_flag_format = "-J{}",
     runtime_libraries = ["@flang_macos_aarch64//:runtime_libraries"],
-    supports_module_path = True,
     tool_deps = ["@flang_macos_aarch64//:compiler_files"],
 )
 
@@ -164,7 +160,6 @@ fortran_toolchain(
     linker_flags = [],
     module_flag_format = "-J{}",
     runtime_libraries = ["@flang_windows_x86_64//:runtime_libraries"],
-    supports_module_path = True,
     tool_deps = ["@flang_windows_x86_64//:compiler_files"],
 )
 
@@ -198,7 +193,6 @@ fortran_toolchain(
     linker_flags = [],
     module_flag_format = "-J{}",
     runtime_libraries = ["@flang//:wasm32_runtime_libraries"],
-    supports_module_path = True,
 )
 
 toolchain(
