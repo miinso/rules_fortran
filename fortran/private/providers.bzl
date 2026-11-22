@@ -8,7 +8,7 @@ FortranInfo = provider(
     """,
     fields = {
         "compile_flags": "list of compilation flags",
-        "link_flags": "list of link flags",
+        "link_flags": "list of this target's own linkopts (not transitive; consumers get the transitive set from CcInfo user_link_flags)",
         "module_map": "dict keyed by module directory path; each value is that module directory (0 or more .mod files)",
         "transitive_libraries": "depset of static library files (.a)",
         "transitive_modules": "depset of module files (.mod)",

@@ -1,6 +1,7 @@
 """Unit tests for linking behavior."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
+load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//:defs.bzl", "fortran_binary", "fortran_library")
 
 def _linkopts_propagate_to_binary_test_impl(ctx):
@@ -33,6 +34,40 @@ def _linkopts_propagate_to_binary_test_impl(ctx):
 
 linkopts_propagate_to_binary_test = analysistest.make(
     _linkopts_propagate_to_binary_test_impl,
+)
+
+def _linkopts_appear_once_test_impl(ctx):
+    """Test that a linkopt reached through several paths is passed to the linker once."""
+    env = analysistest.begin(ctx)
+
+    actions = analysistest.target_actions(env)
+    link_actions = [a for a in actions if "Link" in a.mnemonic]
+    asserts.true(env, len(link_actions) > 0, "Expected at least one link action")
+
+    count = len([arg for arg in link_actions[0].argv if arg == "-lpthread"])
+    asserts.equals(env, 1, count, "Expected -lpthread exactly once in link action")
+
+    return analysistest.end(env)
+
+linkopts_appear_once_test = analysistest.make(
+    _linkopts_appear_once_test_impl,
+)
+
+def _linkopts_in_ccinfo_test_impl(ctx):
+    """Test that fortran_library linkopts are carried by CcInfo, so cc rules see them too."""
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+
+    flags = []
+    for linker_input in target[CcInfo].linking_context.linker_inputs.to_list():
+        flags.extend(linker_input.user_link_flags)
+
+    asserts.true(env, "-lpthread" in flags, "Expected -lpthread in CcInfo user_link_flags")
+
+    return analysistest.end(env)
+
+linkopts_in_ccinfo_test = analysistest.make(
+    _linkopts_in_ccinfo_test_impl,
 )
 
 def _transitive_libs_linked_test_impl(ctx):
@@ -87,6 +122,61 @@ def linking_test_suite(name):
         tags = ["manual"],
     )
 
+    # linkopts one level down: bin -> lib -> lib_with_linkopts
+    fortran_library(
+        name = "lib_over_linkopts",
+        srcs = ["base.f90"],
+        deps = [":lib_with_linkopts"],
+        tags = ["manual"],
+    )
+
+    fortran_binary(
+        name = "bin_with_transitive_linkopts",
+        srcs = ["main.f90"],
+        deps = [":lib_over_linkopts"],
+        tags = ["manual"],
+    )
+
+    # linkopts behind a no-srcs aggregator
+    fortran_library(
+        name = "aggregator_over_linkopts",
+        deps = [":lib_with_linkopts"],
+        tags = ["manual"],
+    )
+
+    fortran_binary(
+        name = "bin_with_aggregated_linkopts",
+        srcs = ["main.f90"],
+        deps = [":aggregator_over_linkopts"],
+        tags = ["manual"],
+    )
+
+    # linkopts on a no-srcs library itself
+    fortran_library(
+        name = "linkopts_only",
+        linkopts = ["-lpthread"],
+        tags = ["manual"],
+    )
+
+    fortran_binary(
+        name = "bin_with_linkopts_only_dep",
+        srcs = ["main.f90"],
+        deps = [":linkopts_only"],
+        tags = ["manual"],
+    )
+
+    # same linkopts reached directly and through two libs
+    fortran_binary(
+        name = "bin_with_diamond_linkopts",
+        srcs = ["main.f90"],
+        deps = [
+            ":lib_over_linkopts",
+            ":aggregator_over_linkopts",
+            ":lib_with_linkopts",
+        ],
+        tags = ["manual"],
+    )
+
     # Transitive chain for linking
     fortran_library(
         name = "base_lib",
@@ -119,10 +209,52 @@ def linking_test_suite(name):
         target_under_test = ":bin_with_transitive",
     )
 
+    linkopts_propagate_to_binary_test(
+        name = "transitive_linkopts_propagate_test",
+        target_under_test = ":bin_with_transitive_linkopts",
+    )
+
+    linkopts_propagate_to_binary_test(
+        name = "aggregated_linkopts_propagate_test",
+        target_under_test = ":bin_with_aggregated_linkopts",
+    )
+
+    linkopts_propagate_to_binary_test(
+        name = "linkopts_only_dep_propagate_test",
+        target_under_test = ":bin_with_linkopts_only_dep",
+    )
+
+    linkopts_appear_once_test(
+        name = "direct_linkopts_appear_once_test",
+        target_under_test = ":bin_with_linkopts",
+    )
+
+    linkopts_appear_once_test(
+        name = "diamond_linkopts_appear_once_test",
+        target_under_test = ":bin_with_diamond_linkopts",
+    )
+
+    linkopts_in_ccinfo_test(
+        name = "linkopts_in_ccinfo_test",
+        target_under_test = ":lib_with_linkopts",
+    )
+
+    linkopts_in_ccinfo_test(
+        name = "linkopts_only_in_ccinfo_test",
+        target_under_test = ":linkopts_only",
+    )
+
     # Bundle into test suite
     native.test_suite(
         name = name,
         tests = [
+            ":transitive_linkopts_propagate_test",
+            ":aggregated_linkopts_propagate_test",
+            ":linkopts_only_dep_propagate_test",
+            ":direct_linkopts_appear_once_test",
+            ":diamond_linkopts_appear_once_test",
+            ":linkopts_in_ccinfo_test",
+            ":linkopts_only_in_ccinfo_test",
             ":linkopts_propagate_to_binary_test",
             ":transitive_libs_linked_test",
         ],
