@@ -93,11 +93,40 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     )
     executable = ctx.actions.declare_file(ctx.label.name + (".exe" if is_windows else ""))
 
+    # Shared libraries the executable needs at run time must be where the
+    # loader looks for them.
+    runtime_solibs = []  # files for the runfiles
+    solib_links = {}  # shared library -> its symlink in <name>_solibs (not on windows)
+    for dll in cc_dynamic_libs:
+        if dll in solib_links:
+            continue
+        if not is_windows:
+            # linux / macos: the loader follows an rpath relative to the
+            # executable, so collect the libraries in a directory next to it
+            link = ctx.actions.declare_file("{}_solibs/{}".format(ctx.label.name, dll.basename))
+            ctx.actions.symlink(output = link, target_file = dll)
+            solib_links[dll] = link
+            runtime_solibs.append(link)
+        elif ctx.label.package != dll.owner.package or ctx.label.workspace_name != dll.owner.workspace_name:
+            # windows: the loader looks next to the exe (app-local deployment).
+            # mirrors rules_cc _create_dynamic_libraries_copy_actions: only copy
+            # DLLs from other packages, to avoid conflicting actions
+            dll_copy = ctx.actions.declare_file(dll.basename)
+            ctx.actions.symlink(output = dll_copy, target_file = dll)
+            runtime_solibs.append(dll_copy)
+        else:
+            runtime_solibs.append(dll)
+
     args = ctx.actions.args()
 
     # Add all object files first (both Fortran and C/C++)
     for obj in all_objects:
         args.add(obj)
+
+    if solib_links:
+        solibs_dir = ctx.label.name + "_solibs"
+        args.add("-L" + executable.dirname + "/" + solibs_dir)
+        args.add("-Wl,-rpath," + ("@loader_path/" if is_macos else "$ORIGIN/") + solibs_dir)
 
     # Add libraries in topological order with deduplication
     # rules_cc did use a set to dedup libraries
@@ -106,7 +135,15 @@ def fortran_executable_impl(ctx, mnemonic, kind):
         if lib in seen_libraries:
             continue
         seen_libraries[lib] = True
-        if lib not in whole_archives:
+        if lib in solib_links:
+            if is_macos:
+                # ld64 records the library's install name, not this path
+                args.add(solib_links[lib])
+            else:
+                # by name, so the binary records the bare file name (or soname)
+                # for the rpath lookup, not a build-tree path
+                args.add(lib.basename, format = "-l:%s")
+        elif lib not in whole_archives:
             args.add(lib)
         elif is_windows:
             args.add(lib, format = "-Wl,/WHOLEARCHIVE:%s")
@@ -133,7 +170,7 @@ def fortran_executable_impl(ctx, mnemonic, kind):
         executable = toolchain.linker,
         arguments = [args],
         inputs = depset(
-            direct = all_objects + all_libraries,
+            direct = all_objects + all_libraries + solib_links.values(),
             transitive = [toolchain.all_files],
         ),
         outputs = [executable],
@@ -142,21 +179,9 @@ def fortran_executable_impl(ctx, mnemonic, kind):
         use_default_shell_env = True,
     )
 
-    # symlink shared libs next to exe for app-local DLL resolution (windows)
-    # mirrors rules_cc _create_dynamic_libraries_copy_actions:
-    # only copy DLLs from different packages to avoid conflicting actions
-    dll_copies = []
-    for dll in cc_dynamic_libs:
-        if ctx.label.package != dll.owner.package or ctx.label.workspace_name != dll.owner.workspace_name:
-            dll_copy = ctx.actions.declare_file(dll.basename)
-            ctx.actions.symlink(output = dll_copy, target_file = dll)
-            dll_copies.append(dll_copy)
-        else:
-            dll_copies.append(dll)
-
     # Create runfiles
     # See: https://bazel.build/extending/rules#runfiles
-    runfiles = ctx.runfiles(files = [executable] + dll_copies + ctx.files.data).merge_all([
+    runfiles = ctx.runfiles(files = [executable] + runtime_solibs + ctx.files.data).merge_all([
         target[DefaultInfo].default_runfiles
         for target in ctx.attr.deps + ctx.attr.data
     ])

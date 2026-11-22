@@ -1,11 +1,18 @@
 """Unit tests for what the executable rules put on the link line."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_import.bzl", "cc_import")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//fortran:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
 
 _SHARED_LIB_EXTENSIONS = ["so", "dll", "dylib"]
+
+_NOT_WINDOWS = select({
+    "@platforms//os:windows": ["@platforms//:incompatible"],
+    "//conditions:default": [],
+})
 
 def _link_argv(env):
     actions = [a for a in analysistest.target_actions(env) if a.mnemonic in ["FortranLink", "FortranLinkTest"]]
@@ -291,6 +298,34 @@ def link_inputs_test_suite(name):
         target_under_test = ":block_data_is_linked_test",
     )
 
+    # a library that exists only in shared form
+    cc_binary(
+        name = "libshared_impl.so",
+        srcs = ["shared.c"],
+        linkshared = True,
+        tags = ["manual"],
+        target_compatible_with = _NOT_WINDOWS,
+    )
+
+    cc_import(
+        name = "shared_only",
+        shared_library = ":libshared_impl.so",
+        tags = ["manual"],
+        target_compatible_with = _NOT_WINDOWS,
+    )
+
+    # Scenario: a shared-only dependency is found at run time
+    # Given a dependency that provides nothing but a shared library
+    # When a fortran_test linking it is built and run
+    # Then the loader finds the library through the executable's rpath
+    # (not on windows: a dll cannot be linked without its import library)
+    fortran_test(
+        name = "shared_only_dep_runs_test",
+        srcs = ["shared_main.f90"],
+        target_compatible_with = _NOT_WINDOWS,
+        deps = [":shared_only"],
+    )
+
     _symlink_dep(
         name = "symlink_dep",
         target = "payload.txt",
@@ -326,5 +361,6 @@ def link_inputs_test_suite(name):
             ":fortran_archive_after_cc_dependent_test",
             ":glue_calls_fortran_test",
             ":no_shared_libs_in_runfiles_test",
+            ":shared_only_dep_runs_test",
         ],
     )
