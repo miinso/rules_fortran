@@ -1,0 +1,36 @@
+"""Tests that compile, link and run, for behavior analysis tests cannot see."""
+
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("//:defs.bzl", "fortran_test")
+
+# Scenario: defines reach the preprocessor
+# Given a source with an uppercase extension
+# And a define that selects the passing branch
+# When the test is built and run
+# Then it exits 0
+fortran_test(
+    name = "defines_reach_preprocessor_test",
+    srcs = ["preprocessed.F90"],
+    defines = ["EXPECTED_DEFINE"],
+)
+
+# Scenario: a generated source compiles
+# Given a source written by another rule
+# When it is listed in srcs
+# Then it compiles and runs like a checked-in file
+write_file(
+    name = "generated_src",
+    out = "gen/generated.f90",
+    content = [
+        "program generated",
+        "  implicit none",
+        "  if (1 + 1 /= 2) stop 1",
+        "end program generated",
+        "",
+    ],
+)
+
+fortran_test(
+    name = "generated_source_test",
+    srcs = [":generated_src"],
+)
