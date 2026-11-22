@@ -12,3 +12,11 @@ local_path_override(
     module_name = "rules_fortran",
     path = "../..",
 )
+
+# a second module, so rules_fortran is also exercised on targets that live
+# in an external repo
+bazel_dep(name = "smoke_dep", version = "0.0.0")
+local_path_override(
+    module_name = "smoke_dep",
+    path = "dep_module",
+)

@@ -1,0 +1,2 @@
+# separate bazel module, consumed as @smoke_dep
+dep_module

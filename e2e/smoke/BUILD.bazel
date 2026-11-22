@@ -16,3 +16,13 @@ fortran_test(
     srcs = ["calculator_test.f90"],
     deps = [":calculator"],
 )
+
+# Scenario: a library in another repo uses includes
+# Given a fortran_library in @smoke_dep with includes and an INCLUDE file
+# When a test here depends on it
+# Then the library compiles and the test reads the included constant
+fortran_test(
+    name = "physics_test",
+    srcs = ["physics_test.f90"],
+    deps = ["@smoke_dep//physics"],
+)

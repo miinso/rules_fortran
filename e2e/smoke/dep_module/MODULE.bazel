@@ -1,0 +1,5 @@
+"""A dependency of the smoke module, so some targets build as an external repo."""
+
+module(name = "smoke_dep")
+
+bazel_dep(name = "rules_fortran", version = "0.0.0")
