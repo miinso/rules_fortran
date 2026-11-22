@@ -17,9 +17,10 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     """
     toolchain = ctx.toolchains["@rules_fortran//fortran:toolchain_type"].fortran
 
-    # Collect dependencies from both Fortran and C/C++ libraries
-    # transitive_objects = [] # TODO: per object linking
-    transitive_libraries = []
+    # Collect dependencies from both Fortran and C/C++ libraries.
+    # modules come from FortranInfo; everything link-related comes from CcInfo
+    # only (fortran_library puts its archive, linkopts and the runtime there),
+    # so the link line keeps the one order CcInfo already got right.
     module_map = {}
     link_flags = []
     cc_libraries = []
@@ -28,42 +29,46 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     cc_linker_inputs = []
 
     for dep in ctx.attr.deps:
-        # Handle Fortran dependencies
         if FortranInfo in dep:
-            transitive_libraries.append(dep[FortranInfo].transitive_libraries)
             module_map.update(dep[FortranInfo].module_map)
-            # linkopts arrive via CcInfo user_link_flags below (transitive)
-
-        # Handle C/C++ dependencies
         if CcInfo in dep:
             cc_linker_inputs.append(dep[CcInfo].linking_context.linker_inputs)
 
     # merge first: a linker input shared by several deps is visited once,
     # so its libraries and link flags are not repeated
     for linker_input in depset(transitive = cc_linker_inputs, order = "topological").to_list():
-        # Collect libraries
         for library in linker_input.libraries:
-            # prefer pic static > static > interface lib > dynamic
-            if library.pic_static_library != None:
-                cc_libraries.append(library.pic_static_library)
-            elif library.static_library != None:
-                cc_libraries.append(library.static_library)
+            # one artifact per library, like rules_cc does for a static link:
+            # static > pic static > interface lib > dynamic
+            if library.static_library != None:
+                archive = library.static_library
+                objects = library.objects
+            elif library.pic_static_library != None:
+                archive = library.pic_static_library
+                objects = library.pic_objects
+            else:
+                archive = None
+                objects = None
+
+            if archive != None:
+                if library.alwayslink and objects:
+                    # alwayslink: every object must be linked, even unreferenced ones.
+                    # the linker only pulls needed members out of an archive, so pass
+                    # the objects in its place.
+                    # TODO: alwayslink archives without objects (cc_import) need
+                    # whole-archive flags
+                    cc_objects.extend(objects)
+                else:
+                    cc_libraries.append(archive)
             elif library.interface_library != None:  # .lib on windows
                 cc_libraries.append(library.interface_library)
+                if library.dynamic_library != None:
+                    cc_dynamic_libs.append(library.dynamic_library)
             elif library.dynamic_library != None:
                 cc_libraries.append(library.dynamic_library)
-
-            # track DLLs for app-local deployment (windows)
-            if library.dynamic_library != None:
                 cc_dynamic_libs.append(library.dynamic_library)
 
-            # Collect object files
-            if hasattr(library, "objects") and library.objects != None:
-                cc_objects.extend(library.objects)
-
-        # Collect user link flags
-        if hasattr(linker_input, "user_link_flags"):
-            link_flags.extend(linker_input.user_link_flags)
+        link_flags.extend(linker_input.user_link_flags)
 
     # Compile sources
     fortran_objects = []
@@ -80,21 +85,13 @@ def fortran_executable_impl(ctx, mnemonic, kind):
         )
         fortran_objects.append(result.object)
 
-    # Collect all libraries from dependencies in topological order
-    # (dependencies come after dependents, allowing linker to resolve symbols correctly)
-    # See: https://bazel.build/extending/depsets#order
-    fortran_libraries = depset(
-        transitive = transitive_libraries,
-        order = "topological",
-    ).to_list()
-
-    # Combine Fortran and C/C++ libraries
-    all_libraries = fortran_libraries + cc_libraries
-
-    # Always include runtime libraries from toolchain (even if no deps)
-    # This ensures flang_rt and clang_rt are linked with correct order
+    # Libraries stay in CcInfo's topological order (dependents before their
+    # dependencies), which single-pass linkers like GNU ld need.
+    # Always include runtime libraries from toolchain (even if no deps), and
+    # keep them last: fortran_library deps also carry them via CcInfo, at
+    # whatever position the merge gave them.
     runtime_libs = toolchain.runtime_libraries
-    all_libraries = all_libraries + runtime_libs
+    all_libraries = [lib for lib in cc_libraries if lib not in runtime_libs] + runtime_libs
 
     # Combine all object files (Fortran + C/C++)
     all_objects = fortran_objects + cc_objects
@@ -155,10 +152,10 @@ def fortran_executable_impl(ctx, mnemonic, kind):
 
     # Create runfiles
     # See: https://bazel.build/extending/rules#runfiles
-    runfiles = ctx.runfiles(files = [executable] + dll_copies + ctx.files.data)
-    for dep in ctx.attr.deps:
-        runfiles = runfiles.merge(ctx.runfiles(transitive_files = dep[DefaultInfo].default_runfiles.files))
-    runfiles = runfiles.merge_all([target[DefaultInfo].default_runfiles for target in ctx.attr.data])
+    runfiles = ctx.runfiles(files = [executable] + dll_copies + ctx.files.data).merge_all([
+        target[DefaultInfo].default_runfiles
+        for target in ctx.attr.deps + ctx.attr.data
+    ])
 
     return [
         DefaultInfo(
