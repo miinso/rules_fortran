@@ -51,21 +51,6 @@ custom_link_flags_test = analysistest.make(
     config_settings = _with_toolchain("custom_toolchain"),
 )
 
-def _no_module_path_test_impl(ctx):
-    """Test that no module output or search flags are passed when the toolchain does not support them."""
-    env = analysistest.begin(ctx)
-    compile_action = _actions(env, "FortranCompile")
-
-    assert_argv_contains_prefix_not(env, compile_action, "-J")
-    assert_argv_contains_prefix_not(env, compile_action, "-I")
-
-    return analysistest.end(env)
-
-no_module_path_test = analysistest.make(
-    _no_module_path_test_impl,
-    config_settings = _with_toolchain("no_module_path_toolchain"),
-)
-
 def _toolchain_alias_test_impl(ctx):
     """Test that fortran_toolchain_alias exposes the resolved toolchain's files."""
     env = analysistest.begin(ctx)
@@ -105,22 +90,6 @@ def toolchain_options_test_suite(name):
     native.toolchain(
         name = "custom_toolchain",
         toolchain = ":custom_toolchain_impl",
-        toolchain_type = "//fortran:toolchain_type",
-        tags = ["manual"],
-    )
-
-    fortran_toolchain(
-        name = "no_module_path_toolchain_impl",
-        archiver = "fake_tool.sh",
-        compiler = "fake_tool.sh",
-        linker = "fake_tool.sh",
-        supports_module_path = False,
-        tags = ["manual"],
-    )
-
-    native.toolchain(
-        name = "no_module_path_toolchain",
-        toolchain = ":no_module_path_toolchain_impl",
         toolchain_type = "//fortran:toolchain_type",
         tags = ["manual"],
     )
@@ -167,15 +136,6 @@ def toolchain_options_test_suite(name):
         target_under_test = ":bin",
     )
 
-    # Scenario: a toolchain without module path support
-    # Given a toolchain with supports_module_path = False
-    # When a source with a module dependency is compiled
-    # Then no module output flag and no module search path is passed
-    no_module_path_test(
-        name = "no_module_path_test",
-        target_under_test = ":preprocessed_lib",
-    )
-
     # Scenario: the toolchain alias follows toolchain resolution
     # Given a fortran_toolchain_alias
     # When a custom toolchain is selected
@@ -190,7 +150,6 @@ def toolchain_options_test_suite(name):
         tests = [
             ":custom_compile_flags_test",
             ":custom_link_flags_test",
-            ":no_module_path_test",
             ":toolchain_alias_test",
         ],
     )

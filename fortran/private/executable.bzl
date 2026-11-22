@@ -97,8 +97,12 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     # Combine all object files (Fortran + C/C++)
     all_objects = fortran_objects + cc_objects
 
-    # Link executable
-    executable = ctx.actions.declare_file(ctx.label.name)
+    # Link executable. named from the target platform (not the host), so
+    # cross builds get it right
+    is_windows = ctx.target_platform_has_constraint(
+        ctx.attr._windows_constraint[platform_common.ConstraintValueInfo],
+    )
+    executable = ctx.actions.declare_file(ctx.label.name + (".exe" if is_windows else ""))
 
     args = ctx.actions.args()
 
@@ -168,6 +172,9 @@ def fortran_executable_impl(ctx, mnemonic, kind):
 
 # attrs common to fortran_binary and fortran_test
 EXECUTABLE_ATTRS = {
+    "_windows_constraint": attr.label(
+        default = Label("@platforms//os:windows"),
+    ),
     "copts": attr.string_list(
         doc = "Additional compiler options.",
     ),
