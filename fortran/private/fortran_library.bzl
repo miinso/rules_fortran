@@ -24,31 +24,22 @@ def _fortran_library_impl(ctx):
     """
     toolchain = ctx.toolchains["@rules_fortran//fortran:toolchain_type"].fortran
 
-    # Collect transitive deps for linking and compiling dependent sources
-    transitive_sources = [dep[FortranInfo].transitive_sources for dep in ctx.attr.deps if FortranInfo in dep]
-    transitive_modules = [dep[FortranInfo].transitive_modules for dep in ctx.attr.deps if FortranInfo in dep]
-    transitive_objects = [dep[FortranInfo].transitive_objects for dep in ctx.attr.deps if FortranInfo in dep]
-    transitive_libraries = [dep[FortranInfo].transitive_libraries for dep in ctx.attr.deps if FortranInfo in dep]
-
-    # module_map: {module_directory_path: directory_with_mod_files}
-    # sources that USE modules need access to those `*.mod` files at compile time
-    module_map = {}
-    for dep in ctx.attr.deps:
-        if FortranInfo in dep:
-            module_map.update(dep[FortranInfo].module_map)
+    # module directories of deps: sources that USE a module need its `*.mod`
+    # file at compile time
+    dep_modules = [dep[FortranInfo].transitive_modules for dep in ctx.attr.deps if FortranInfo in dep]
+    modules_from_deps = depset(transitive = dep_modules)
 
     # Compile each source: `*.f90` -> `*.o` (always) + `*.mod` (if source defines a MODULE)
     # https://fortran-lang.org/learn/building_programs/include_files/#include-files-and-modules
     objects = []  # `*.o` files for archiving
-    modules = []  # `*.mod` directories for dependents
-    local_module_map = {}
+    modules = []  # module directories for dependents, one per source (0 or more .mod files each)
 
     for src in ctx.files.srcs:
         result = compile_fortran(
             ctx = ctx,
             toolchain = toolchain,
             src = src,
-            module_map = module_map,  # propagate child dependency `*.mod` files (if any)
+            modules = modules_from_deps,
             copts = ctx.attr.copts,
             defines = ctx.attr.defines,
             includes = ctx.attr.includes,
@@ -56,13 +47,6 @@ def _fortran_library_impl(ctx):
         )
         objects.append(result.object)
         modules.append(result.module)
-
-        # Key by the module directory path, which is unique per target and
-        # source, so sources sharing a basename do not overwrite each other.
-        # The directory may contain 0 or more .mod files
-        local_module_map[result.module.path] = result.module
-
-    module_map.update(local_module_map)
 
     # Archive compiled objects into static library (`*.a` file)
     archive = None
@@ -90,9 +74,6 @@ def _fortran_library_impl(ctx):
 
     # DefaultInfo: just a list of files built when building this target (`*.a` + `*.mod` directories)
     output_files = ([archive] + modules) if archive else modules
-
-    # FortranInfo.transitive_libraries: direct `*.a` for this target, propagated from child dependencies
-    libraries = [archive] if archive else []
 
     # CcInfo: Allows C/C++ rules (cc_binary, cc_library) to link against this Fortran library
     cc_infos = []
@@ -150,26 +131,10 @@ def _fortran_library_impl(ctx):
     return [
         DefaultInfo(files = depset(output_files), runfiles = runfiles),
         FortranInfo(
-            transitive_sources = depset(
-                direct = ctx.files.srcs,
-                transitive = transitive_sources,
-            ),
             transitive_modules = depset(
                 direct = modules,
-                transitive = transitive_modules,
+                transitive = dep_modules,
             ),
-            transitive_objects = depset(
-                direct = objects,
-                transitive = transitive_objects,
-            ),
-            transitive_libraries = depset(
-                direct = libraries,
-                transitive = transitive_libraries,
-                order = "topological",
-            ),
-            module_map = module_map,
-            compile_flags = ctx.attr.copts,
-            link_flags = ctx.attr.linkopts,
         ),
         CcInfo(
             compilation_context = compilation_context,

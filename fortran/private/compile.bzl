@@ -32,14 +32,14 @@ def _output_stem(ctx, src):
     dirname, sep, basename = path.rpartition("/")
     return dirname + sep + basename.replace(".", "_")
 
-def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includes = [], hdrs = []):
+def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes = [], hdrs = []):
     """Compile a single Fortran source file.
 
     Args:
         ctx: Rule context
         toolchain: FortranToolchainInfo provider
         src: Source file to compile
-        module_map: Dictionary keyed by module directory path; values are the module directories
+        modules: depset of module directories from deps (FortranInfo.transitive_modules)
         copts: Additional compilation options
         defines: Preprocessor defines (e.g., ['_OPENMP', 'USE_MPI'])
         includes: List of include directories to add to compile line
@@ -99,17 +99,11 @@ def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includ
         flag = toolchain.module_flag_format.format(module_output_dir.path)
         args.add(flag)
 
-    # Module search paths from dependencies
-    # module_map now contains directories (not individual .mod files)
-    module_dirs = []
-    input_module_dirs = []
-    for mod_dir in module_map.values():
-        module_dirs.append(mod_dir.path)
-        input_module_dirs.append(mod_dir)
-
-    for dir_path in module_dirs:
-        if toolchain.supports_module_path:
-            args.add("-I" + dir_path)
+    # Module search paths from dependencies.
+    # the depset is expanded at execution time, so a large dependency graph
+    # is not flattened once per source during analysis
+    if toolchain.supports_module_path:
+        args.add_all(modules, format_each = "-I%s", expand_directories = False)
 
     # Include directories (resolved relative to package, like rules_cc)
     # Validate against "." and ".." to protect workspace (see cc_helper.bzl#L827-L833)
@@ -146,7 +140,7 @@ def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includ
         arguments = [args],
         inputs = depset(
             direct = [src] + hdrs,
-            transitive = [depset(input_module_dirs), toolchain.all_files],
+            transitive = [modules, toolchain.all_files],
         ),
         outputs = [obj, module_output_dir],
         mnemonic = "FortranCompile",

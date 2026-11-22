@@ -5,6 +5,15 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//:defs.bzl", "fortran_library")
 load("//fortran/private:providers.bzl", "FortranInfo")
 
+def _archive_names(target):
+    # basenames of the static archives the target hands to a linker (via CcInfo)
+    return [
+        library.static_library.basename
+        for linker_input in target[CcInfo].linking_context.linker_inputs.to_list()
+        for library in linker_input.libraries
+        if library.static_library != None
+    ]
+
 def _transitive_deps_propagate_test_impl(ctx):
     """Test that dependencies propagate transitively through the build graph.
 
@@ -14,23 +23,10 @@ def _transitive_deps_propagate_test_impl(ctx):
     env = analysistest.begin(ctx)
     target = analysistest.target_under_test(env)
 
-    # Check FortranInfo transitive libraries
-    fortran_info = target[FortranInfo]
-    transitive_libs = fortran_info.transitive_libraries.to_list()
-
-    # Should have libraries from lib_a, lib_b, and lib_c itself
-    asserts.true(
-        env,
-        len(transitive_libs) >= 3,
-        "Expected transitive libraries from full dependency chain (found {})".format(len(transitive_libs)),
-    )
-
-    # Check CcInfo propagates
-    asserts.true(
-        env,
-        CcInfo in target,
-        "fortran_library must provide CcInfo with transitive deps",
-    )
+    # archives of lib_a, lib_b, and lib_c itself
+    names = _archive_names(target)
+    for expected in ["liblib_a.a", "liblib_b.a", "liblib_c.a"]:
+        asserts.true(env, expected in names, "Expected {} among {}".format(expected, names))
 
     return analysistest.end(env)
 
@@ -55,12 +51,10 @@ def _diamond_deps_deduplicate_test_impl(ctx):
     env = analysistest.begin(ctx)
     target = analysistest.target_under_test(env)
 
-    fortran_info = target[FortranInfo]
-    transitive_libs = fortran_info.transitive_libraries.to_list()
-
     # Check for duplicates by comparing list length to set length
-    lib_paths = [lib.path for lib in transitive_libs]
+    lib_paths = _archive_names(target)
     unique_paths = {path: True for path in lib_paths}
+    asserts.true(env, "libdiamond_base.a" in lib_paths, "Expected libdiamond_base.a among {}".format(lib_paths))
 
     asserts.equals(
         env,
@@ -102,15 +96,10 @@ def _no_srcs_library_propagates_deps_test_impl(ctx):
         "Library with no srcs must still provide CcInfo",
     )
 
-    fortran_info = target[FortranInfo]
-    transitive_libs = fortran_info.transitive_libraries.to_list()
-
     # Should have libraries from deps even though it has no srcs
-    asserts.true(
-        env,
-        len(transitive_libs) >= 1,
-        "Library with no srcs should propagate deps' libraries",
-    )
+    names = _archive_names(target)
+    for expected in ["liblib_a.a", "liblib_b.a"]:
+        asserts.true(env, expected in names, "Library with no srcs should propagate {} (got {})".format(expected, names))
 
     return analysistest.end(env)
 

@@ -5,6 +5,15 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//:defs.bzl", "fortran_binary", "fortran_library")
 load("//fortran/private:providers.bzl", "FortranInfo")
 
+def _archive_names(target):
+    # basenames of the static archives the target hands to a linker (via CcInfo)
+    return [
+        library.static_library.basename
+        for linker_input in target[CcInfo].linking_context.linker_inputs.to_list()
+        for library in linker_input.libraries
+        if library.static_library != None
+    ]
+
 def _empty_library_provides_providers_test_impl(ctx):
     """Test that library with no srcs still provides required providers."""
     env = analysistest.begin(ctx)
@@ -35,14 +44,12 @@ def _library_with_only_deps_test_impl(ctx):
     env = analysistest.begin(ctx)
     target = analysistest.target_under_test(env)
 
-    fortran_info = target[FortranInfo]
-    transitive_libs = fortran_info.transitive_libraries.to_list()
-
     # Should propagate libs from dependencies
+    names = _archive_names(target)
     asserts.true(
         env,
-        len(transitive_libs) >= 1,
-        "Aggregator library should propagate dependencies' libraries",
+        "libdep_a.a" in names,
+        "Aggregator library should propagate dependencies' libraries (got {})".format(names),
     )
 
     return analysistest.end(env)
@@ -85,14 +92,12 @@ def _single_source_library_test_impl(ctx):
     env = analysistest.begin(ctx)
     target = analysistest.target_under_test(env)
 
-    fortran_info = target[FortranInfo]
-
-    # Should have exactly one library
-    transitive_libs = fortran_info.transitive_libraries.to_list()
+    # Should have exactly one library of its own (the rest is the fortran runtime)
+    own = [name for name in _archive_names(target) if name == "libsingle_src_lib.a"]
     asserts.equals(
         env,
-        len(transitive_libs),
         1,
+        len(own),
         "Single source library should produce exactly one library",
     )
 
