@@ -13,7 +13,7 @@ This rule:
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load(":compile.bzl", "compile_fortran")
+load(":compile.bzl", "check_defines", "compile_fortran")
 load(":providers.bzl", "FortranInfo")
 
 def _fortran_library_impl(ctx):
@@ -34,6 +34,7 @@ def _fortran_library_impl(ctx):
     objects = []  # `*.o` files for archiving
     modules = []  # module directories for dependents, one per source (0 or more .mod files each)
 
+    check_defines(ctx.files.srcs, ctx.attr.defines)
     for src in ctx.files.srcs:
         result = compile_fortran(
             ctx = ctx,

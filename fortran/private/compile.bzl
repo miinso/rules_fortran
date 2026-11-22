@@ -32,6 +32,22 @@ def _output_stem(ctx, src):
     dirname, sep, basename = path.rpartition("/")
     return dirname + sep + basename.replace(".", "_")
 
+def check_defines(srcs, defines):
+    """Fails when defines are set but no source would see them (see #14).
+
+    Only sources with an uppercase extension are preprocessed. A target may
+    mix both kinds; the defines then apply to the preprocessed ones.
+
+    Args:
+        srcs: list of source Files of the target
+        defines: the target's defines
+    """
+    if defines and srcs and not [src for src in srcs if _needs_preprocessing(src)]:
+        fail(
+            "defines = {} specified but no source is preprocessed. ".format(defines) +
+            "Use an uppercase extension (.F90, .F95, etc.) on the sources that need them.",
+        )
+
 def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes = [], hdrs = []):
     """Compile a single Fortran source file.
 
@@ -82,17 +98,11 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
         # Add toolchain-level preprocessor flags
         args.add_all(toolchain.preprocessor_flags)
 
-        # Add target-specific preprocessor defines
+        # Add target-specific preprocessor defines.
+        # sources that are not preprocessed get none; check_defines() rejects
+        # a target where that leaves the defines unused
         for define in defines:
             args.add("-D" + define)
-    elif defines:
-        # warn user that defines are ignored for lowercase extensions (see #14)
-        fail(
-            "defines = {} specified but source '{}' has lowercase extension. ".format(
-                defines,
-                src.basename,
-            ) + "Use uppercase extension (.F90, .F95, etc.) for preprocessing.",
-        )
 
     # Module output directory - where this compilation writes .mod files
     args.add(toolchain.module_flag_format.format(module_output_dir.path))

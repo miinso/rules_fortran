@@ -1,6 +1,6 @@
 """Implementation of fortran_test rule."""
 
-load(":executable.bzl", "EXECUTABLE_ATTRS", "fortran_executable_impl")
+load(":executable.bzl", "EXECUTABLE_ATTRS", "TEST_ONLY_ATTRS", "fortran_executable_impl")
 
 def _fortran_test_impl(ctx):
     return fortran_executable_impl(ctx, mnemonic = "FortranLinkTest", kind = "test")
@@ -19,7 +19,7 @@ fortran_test = rule(
             deps = [":mylib"],
         )
     """,
-    attrs = EXECUTABLE_ATTRS,
+    attrs = EXECUTABLE_ATTRS | TEST_ONLY_ATTRS,
     test = True,
     toolchains = ["@rules_fortran//fortran:toolchain_type"],
 )
