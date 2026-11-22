@@ -3,7 +3,7 @@
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load("//:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
+load("//fortran:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
 
 _SHARED_LIB_EXTENSIONS = ["so", "dll", "dylib"]
 

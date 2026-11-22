@@ -2,7 +2,7 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("//:defs.bzl", "fortran_binary", "fortran_library")
+load("//fortran:defs.bzl", "fortran_binary", "fortran_library")
 
 def _fortran_library_compile_excludes_cc_link_flags_test_impl(ctx):
     """Test that fortran_library compile actions don't include cc_library link flags.

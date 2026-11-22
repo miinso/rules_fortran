@@ -1,7 +1,7 @@
 """Tests that compile, link and run, for behavior analysis tests cannot see."""
 
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
-load("//:defs.bzl", "fortran_test")
+load("//fortran:defs.bzl", "fortran_test")
 
 # Scenario: defines reach the preprocessor
 # Given a source with an uppercase extension

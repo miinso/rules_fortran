@@ -3,7 +3,7 @@
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
-load("//:defs.bzl", "fortran_library")
+load("//fortran:defs.bzl", "fortran_library")
 load("//test/unit:common.bzl", "assert_argv_contains", "assert_argv_contains_not")
 
 # extension -> (source form flag, preprocessed)

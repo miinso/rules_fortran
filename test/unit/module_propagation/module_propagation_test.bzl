@@ -2,7 +2,7 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("//:defs.bzl", "fortran_library", "fortran_test")
+load("//fortran:defs.bzl", "fortran_library", "fortran_test")
 load("//fortran/private:providers.bzl", "FortranInfo")
 
 def _transitive_modules_excludes_cc_outputs_test_impl(ctx):

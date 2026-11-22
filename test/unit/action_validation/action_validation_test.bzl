@@ -1,7 +1,7 @@
 """Unit tests for action validation (compiler flags, includes, defines)."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("//:defs.bzl", "fortran_library")
+load("//fortran:defs.bzl", "fortran_library")
 load("//test/unit:common.bzl", "assert_argv_contains", "assert_argv_contains_prefix")
 
 def _copts_appear_in_compile_action_test_impl(ctx):

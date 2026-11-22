@@ -3,7 +3,7 @@
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc:cc_import.bzl", "cc_import")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("//:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
+load("//fortran:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
 load("//test/unit:common.bzl", "assert_argv_contains")
 
 # --- helpers ---

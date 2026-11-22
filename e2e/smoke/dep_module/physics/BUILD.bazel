@@ -1,4 +1,5 @@
-load("@rules_fortran//fortran:defs.bzl", "fortran_library")
+# per-rule load file on purpose; the main smoke module loads from defs.bzl
+load("@rules_fortran//fortran:fortran_library.bzl", "fortran_library")
 
 fortran_library(
     name = "physics",
