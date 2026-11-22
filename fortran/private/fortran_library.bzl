@@ -69,6 +69,7 @@ def _fortran_library_impl(ctx):
                 actions = ctx.actions,
                 feature_configuration = cc_common.configure_features(ctx = ctx, cc_toolchain = cc_toolchain),
                 static_library = archive,
+                alwayslink = ctx.attr.alwayslink,
             ))
         linker_input = cc_common.create_linker_input(
             owner = ctx.label,
@@ -145,6 +146,13 @@ fortran_library = rule(
         )
     """,
     attrs = COMPILE_ATTRS | {
+        "alwayslink": attr.bool(
+            default = False,
+            doc = "If True, every object of this library is linked into any binary that depends on it, " +
+                  "even objects nothing references. Use it for code that is only reached indirectly " +
+                  "(looked up by name, weakly referenced), and for BLOCK DATA units that only initialize a " +
+                  "COMMON block, which not every linker pulls out of an archive.",
+        ),
         "data": attr.label_list(
             allow_files = True,
             doc = "Files needed at run time. Added to the runfiles of every binary or test that links this library.",
