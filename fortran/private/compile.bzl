@@ -38,9 +38,18 @@ COMPILE_ATTRS = {
     ),
     "srcs": attr.label_list(
         allow_files = ["." + ext for ext in _FIXED_FORM_EXTENSIONS + _FREE_FORM_EXTENSIONS],
-        doc = "List of Fortran source files to compile. Each source is compiled on its own, so a " +
-              "source cannot USE a module defined by another source of the same target; put the " +
-              "module in a separate fortran_library and depend on it.",
+        doc = "List of Fortran source files to compile, in any order. Sources may USE modules " +
+              "defined by other sources of the same target; the order is worked out from the sources.",
+    ),
+}
+
+# the scanner that orders a target's modules. kept out of COMPILE_ATTRS because
+# the scanner is a Fortran program itself, built by a rule that must not depend on it
+MODULE_ORDER_ATTRS = {
+    "_module_order": attr.label(
+        default = Label("//fortran/private/tools:module_order"),
+        executable = True,
+        cfg = "exec",
     ),
 }
 
@@ -84,6 +93,97 @@ def check_defines(srcs, defines):
             "defines = {} specified but no source is preprocessed. ".format(defines) +
             "Use an uppercase extension (.F90, .F95, etc.) on the sources that need them.",
         )
+
+def _include_dirs(ctx, includes):
+    """Execroot paths for the `includes` attr (resolved relative to the package, like rules_cc)."""
+    dirs = []
+    package = ctx.label.package
+    for inc in includes:
+        # no "." and ".." to protect the workspace (see cc_helper.bzl#L827-L833)
+        if ".." in inc:
+            fail("includes cannot contain '..': " + inc)
+        if package:
+            inc_path = package + "/" + inc
+        else:
+            inc_path = inc
+        if inc_path == "." or inc_path == "":
+            fail("includes resolves to workspace root, which would expose the entire workspace")
+
+        # targets in an external repo live under external/<repo> in the execroot
+        if ctx.label.workspace_root:
+            inc_path = ctx.label.workspace_root + "/" + inc_path
+        dirs.append(inc_path)
+    return dirs
+
+def _module_pass(ctx, toolchain, srcs, modules_from_deps):
+    """Builds the .mod files of all srcs up front, in dependency order.
+
+    Sources of one target may USE each other's modules in any order, which
+    only the source text knows. So:
+      1. module_order (a small scanner) reads the srcs and writes the
+         module-defining ones in the order they have to be seen
+      2. one compiler run, semantics only, takes them in that order and
+         writes every .mod file into one directory
+    The real per-source compiles then all read that directory and run in
+    parallel.
+
+    Args:
+        ctx: Rule context
+        toolchain: FortranToolchainInfo provider
+        srcs: the target's source Files (more than one)
+        modules_from_deps: depset of the deps' module directories
+
+    Returns:
+        the directory holding every .mod file of this target
+    """
+    prefix = ctx.label.name + "_module_pass/"
+    order = ctx.actions.declare_file(prefix + "order.params")
+    empty = ctx.actions.declare_file(prefix + "empty.f90")
+    module_dir = ctx.actions.declare_directory(prefix + "modules")
+
+    scan_args = ctx.actions.args()
+    scan_args.add(order)
+    scan_args.add(empty)
+    scan_args.add_all(srcs)
+    scan_args.use_param_file("%s", use_always = True)
+    scan_args.set_param_file_format("multiline")
+    ctx.actions.run(
+        executable = ctx.executable._module_order,
+        arguments = [scan_args],
+        inputs = srcs,
+        outputs = [order, empty],
+        mnemonic = "FortranModuleOrder",
+        progress_message = "Ordering Fortran modules of %{label}",
+    )
+
+    args = ctx.actions.args()
+    args.add_all(toolchain.compiler_flags)
+    args.add_all(ctx.attr.copts)
+
+    # no form or preprocessing switches here: one run sees every kind of
+    # source, and the compiler picks both from each file's extension
+    if [src for src in srcs if _needs_preprocessing(src)]:
+        args.add_all(toolchain.preprocessor_flags)
+        args.add_all(ctx.attr.defines, format_each = "-D%s")
+    args.add(toolchain.module_flag_format.format(module_dir.path))
+    args.add_all(modules_from_deps, format_each = "-I%s", expand_directories = False)
+    args.add_all(_include_dirs(ctx, ctx.attr.includes), format_each = "-I%s")
+    args.add("-fsyntax-only")
+    args.use_param_file("@%s", use_always = True)
+    args.set_param_file_format("multiline")
+    ctx.actions.run(
+        executable = toolchain.compiler,
+        # the order file is a response file too, read after the flags
+        arguments = [args, "@" + order.path],
+        inputs = depset(
+            direct = srcs + ctx.files.hdrs + [order, empty],
+            transitive = [modules_from_deps, toolchain.all_files],
+        ),
+        outputs = [module_dir],
+        mnemonic = "FortranModules",
+        progress_message = "Building Fortran modules of %{label}",
+    )
+    return module_dir
 
 def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes = [], hdrs = []):
     """Compile a single Fortran source file.
@@ -149,23 +249,7 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
     # is not flattened once per source during analysis
     args.add_all(modules, format_each = "-I%s", expand_directories = False)
 
-    # Include directories (resolved relative to package, like rules_cc)
-    # Validate against "." and ".." to protect workspace (see cc_helper.bzl#L827-L833)
-    package = ctx.label.package
-    for inc in includes:
-        if ".." in inc:
-            fail("includes cannot contain '..': " + inc)
-        if package:
-            inc_path = package + "/" + inc
-        else:
-            inc_path = inc
-        if inc_path == "." or inc_path == "":
-            fail("includes resolves to workspace root, which would expose the entire workspace")
-
-        # targets in an external repo live under external/<repo> in the execroot
-        if ctx.label.workspace_root:
-            inc_path = ctx.label.workspace_root + "/" + inc_path
-        args.add("-I" + inc_path)
+    args.add_all(_include_dirs(ctx, includes), format_each = "-I%s")
 
     # Compile command
     args.add("-c")
@@ -206,26 +290,37 @@ def compile_sources(ctx, toolchain):
     Returns:
         struct with
           objects: list of object files, one per source
-          modules: list of module directories, one per source
+          modules: list of the module directories dependents need
           dep_modules: list of the deps' transitive module depsets
     """
+    srcs = ctx.files.srcs
 
     # sources that USE a module need its `*.mod` file at compile time
     dep_modules = [dep[FortranInfo].transitive_modules for dep in ctx.attr.deps if FortranInfo in dep]
     modules_from_deps = depset(transitive = dep_modules)
 
-    check_defines(ctx.files.srcs, ctx.attr.defines)
+    check_defines(srcs, ctx.attr.defines)
+
+    # with several sources, their modules are built first so the sources can
+    # USE each other. a single source has no siblings and skips that (so does
+    # the rule that builds the scanner itself, which has no _module_order)
+    shared_modules = None
+    if len(srcs) > 1 and hasattr(ctx.executable, "_module_order"):
+        shared_modules = _module_pass(ctx, toolchain, srcs, modules_from_deps)
+        visible_modules = depset([shared_modules], transitive = dep_modules)
+    else:
+        visible_modules = modules_from_deps
 
     # `*.f90` -> `*.o` (always) + `*.mod` (if the source defines a MODULE)
     # https://fortran-lang.org/learn/building_programs/include_files/#include-files-and-modules
     objects = []
     modules = []
-    for src in ctx.files.srcs:
+    for src in srcs:
         result = compile_fortran(
             ctx = ctx,
             toolchain = toolchain,
             src = src,
-            modules = modules_from_deps,
+            modules = visible_modules,
             copts = ctx.attr.copts,
             defines = ctx.attr.defines,
             includes = ctx.attr.includes,
@@ -236,6 +331,8 @@ def compile_sources(ctx, toolchain):
 
     return struct(
         objects = objects,
-        modules = modules,
+        # after a module pass one directory holds them all; the per-source
+        # directories are then just where each compile wrote its own copy
+        modules = [shared_modules] if shared_modules else modules,
         dep_modules = dep_modules,
     )

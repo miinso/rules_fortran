@@ -22,6 +22,7 @@ bzl_library(
 bzl_library(
     name = "rules",
     srcs = [
+        "bootstrap.bzl",
         "executable.bzl",
         "fortran_binary.bzl",
         "fortran_library.bzl",

@@ -1,0 +1,16 @@
+"""Tools the Fortran rules run during a build."""
+
+load("//fortran/private:bootstrap.bzl", "fortran_bootstrap_binary")
+
+# orders the module-defining sources of a target (see module_order.f90)
+fortran_bootstrap_binary(
+    name = "module_order",
+    srcs = ["module_order.f90"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "srcs",
+    srcs = glob(["**/*"]),
+    visibility = ["//fortran:__subpackages__"],
+)

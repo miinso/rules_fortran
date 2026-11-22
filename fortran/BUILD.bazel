@@ -53,6 +53,7 @@ filegroup(
     name = "srcs",
     srcs = glob(["*"]) + [
         "//fortran/private:srcs",
+        "//fortran/private/tools:srcs",
         "//fortran/toolchains:srcs",
     ],
 )
