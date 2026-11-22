@@ -30,7 +30,8 @@ COMPILE_ATTRS = {
     "hdrs": attr.label_list(
         allow_files = [".inc", ".mod"],
         doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules. " +
-              "Used by this target's srcs only; they are not passed on to dependents.",
+              "Used by this target's srcs only; they are not passed on to dependents " +
+              "(for prebuilt modules that dependents need too, see fortran_import).",
     ),
     "includes": attr.string_list(
         doc = "List of include directories, relative to this package, to add to the compile line. " +
@@ -93,6 +94,14 @@ def check_defines(srcs, defines):
             "defines = {} specified but no source is preprocessed. ".format(defines) +
             "Use an uppercase extension (.F90, .F95, etc.) on the sources that need them.",
         )
+
+def _module_search_dir(module):
+    """The directory to search for one entry of FortranInfo.transitive_modules.
+
+    an entry is a directory of .mod files (compiled here), or a single
+    prebuilt .mod file (fortran_import)
+    """
+    return module.path if module.is_directory else module.dirname
 
 def _include_dirs(ctx, includes):
     """Execroot paths for the `includes` attr (resolved relative to the package, like rules_cc)."""
@@ -166,7 +175,13 @@ def _module_pass(ctx, toolchain, srcs, modules_from_deps):
         args.add_all(toolchain.preprocessor_flags)
         args.add_all(ctx.attr.defines, format_each = "-D%s")
     args.add(toolchain.module_flag_format.format(module_dir.path))
-    args.add_all(modules_from_deps, format_each = "-I%s", expand_directories = False)
+    args.add_all(
+        modules_from_deps,
+        map_each = _module_search_dir,
+        format_each = "-I%s",
+        uniquify = True,
+        expand_directories = False,
+    )
     args.add_all(_include_dirs(ctx, ctx.attr.includes), format_each = "-I%s")
     args.add("-fsyntax-only")
     args.use_param_file("@%s", use_always = True)
@@ -247,7 +262,13 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
     # Module search paths from dependencies.
     # the depset is expanded at execution time, so a large dependency graph
     # is not flattened once per source during analysis
-    args.add_all(modules, format_each = "-I%s", expand_directories = False)
+    args.add_all(
+        modules,
+        map_each = _module_search_dir,
+        format_each = "-I%s",
+        uniquify = True,
+        expand_directories = False,
+    )
 
     args.add_all(_include_dirs(ctx, includes), format_each = "-I%s")
 

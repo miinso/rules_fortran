@@ -100,6 +100,28 @@ For a target with more than one source, rules_fortran reads the `module`, `submo
 
 The statements are read as written, before preprocessing. A `use` hidden behind a macro, or a module name built by one, is not seen; put such a module in its own `fortran_library` and depend on it.
 
+### Prebuilt Libraries
+
+A Fortran library that was built outside of Bazel comes as module files plus an archive or a shared library. `fortran_import` brings both into the build:
+
+```starlark
+fortran_import(
+    name = "vendor",
+    modules = glob(["include/*.mod"]),
+    static_library = "lib/libvendor.a",
+)
+
+fortran_binary(
+    name = "app",
+    srcs = ["main.f90"],  # use vendor
+    deps = [":vendor"],
+)
+```
+
+Dependents use it like a `fortran_library`: its modules are visible to them and to whatever depends on them, and its library is linked.
+
+Module files are not portable. A `.mod` file can only be read by the compiler that wrote it, usually only by the same version, so import module files written by the flang the toolchain uses.
+
 ### C Interoperability
 
 rules_fortran provides `CcInfo` from `fortran_library`, enabling:

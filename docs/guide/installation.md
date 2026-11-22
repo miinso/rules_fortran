@@ -4,6 +4,7 @@
 
 - Bazel 7.0+
 - Bzlmod enabled (default in Bazel 7+)
+- On macOS: the Xcode Command Line Tools (`xcode-select --install`). Linking uses the macOS SDK from their default location, `/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk`.
 
 ## Setup
 

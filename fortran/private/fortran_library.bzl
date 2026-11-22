@@ -12,7 +12,7 @@ This rule:
 
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
-load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+load(":cc_info.bzl", "library_cc_info")
 load(":compile.bzl", "COMPILE_ATTRS", "MODULE_ORDER_ATTRS", "compile_sources")
 load(":providers.bzl", "FortranInfo")
 
@@ -56,51 +56,15 @@ def _fortran_library_impl(ctx):
     output_files = ([archive] + modules) if archive else modules
 
     # CcInfo: Allows C/C++ rules (cc_binary, cc_library) to link against this Fortran library
-    cc_infos = []
-
-    if archive or ctx.attr.linkopts:
-        # 1. create CcInfo for this library's archive and linkopts
-        # linkopts ride in the linker input so they reach every transitive
-        # consumer (fortran_binary, cc_binary), once per library
-        libraries_to_link = []
-        if archive:
-            cc_toolchain = find_cc_toolchain(ctx)
-            libraries_to_link.append(cc_common.create_library_to_link(
-                actions = ctx.actions,
-                feature_configuration = cc_common.configure_features(ctx = ctx, cc_toolchain = cc_toolchain),
-                static_library = archive,
-                alwayslink = ctx.attr.alwayslink,
-            ))
-        linker_input = cc_common.create_linker_input(
-            owner = ctx.label,
-            libraries = depset(libraries_to_link),
-            user_link_flags = ctx.attr.linkopts,
-            # runtime libs are in toolchain, not here
-        )
-        linking_context = cc_common.create_linking_context(linker_inputs = depset([linker_input]))
-        cc_infos.append(CcInfo(
-            compilation_context = cc_common.create_compilation_context(),
-            linking_context = linking_context,
-        ))
-
+    library = None
     if archive:
-        # 2. add toolchain runtime CcInfo (once, from toolchain)
-        cc_infos.append(toolchain.runtime_ccinfo)
-
-    # 3. collect and add CcInfo from dependencies
-    for dep in ctx.attr.deps:
-        if CcInfo in dep:
-            cc_infos.append(dep[CcInfo])
-
-    # 4. merge all CcInfos (or create empty if none)
-    # always return CcInfo even for libraries with no sources. See: 500609c
-    if cc_infos:
-        merged = cc_common.merge_cc_infos(cc_infos = cc_infos)
-        compilation_context = merged.compilation_context
-        linking_context = merged.linking_context
-    else:
-        compilation_context = cc_common.create_compilation_context()
-        linking_context = cc_common.create_linking_context(linker_inputs = depset([]))  # can't be Null, hence the empty depset
+        cc_toolchain = find_cc_toolchain(ctx)
+        library = cc_common.create_library_to_link(
+            actions = ctx.actions,
+            feature_configuration = cc_common.configure_features(ctx = ctx, cc_toolchain = cc_toolchain),
+            static_library = archive,
+            alwayslink = ctx.attr.alwayslink,
+        )
 
     # runfiles: own data + whatever deps and data targets need at run time,
     # so a binary linking this library gets them too
@@ -117,10 +81,7 @@ def _fortran_library_impl(ctx):
                 transitive = compiled.dep_modules,
             ),
         ),
-        CcInfo(
-            compilation_context = compilation_context,
-            linking_context = linking_context,
-        ),
+        library_cc_info(ctx, toolchain, library),
     ]
 
 fortran_library = rule(

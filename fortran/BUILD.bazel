@@ -19,6 +19,7 @@ bzl_library(
     name = "per_symbol",
     srcs = [
         "fortran_binary.bzl",
+        "fortran_import.bzl",
         "fortran_info.bzl",
         "fortran_library.bzl",
         "fortran_test.bzl",
@@ -61,6 +62,7 @@ filegroup(
 exports_files([
     "defs.bzl",
     "fortran_binary.bzl",
+    "fortran_import.bzl",
     "fortran_info.bzl",
     "fortran_library.bzl",
     "fortran_test.bzl",

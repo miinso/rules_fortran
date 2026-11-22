@@ -1,0 +1,5 @@
+"""Unit tests for fortran_import."""
+
+load(":fortran_import_test.bzl", "fortran_import_test_suite")
+
+fortran_import_test_suite(name = "fortran_import_test")

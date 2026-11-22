@@ -5,6 +5,10 @@ load(
     _fortran_binary = "fortran_binary",
 )
 load(
+    "//fortran/private:fortran_import.bzl",
+    _fortran_import = "fortran_import",
+)
+load(
     "//fortran/private:fortran_library.bzl",
     _fortran_library = "fortran_library",
 )
@@ -19,6 +23,7 @@ load(
 
 # Public rules
 fortran_binary = _fortran_binary
+fortran_import = _fortran_import
 fortran_library = _fortran_library
 fortran_test = _fortran_test
 
