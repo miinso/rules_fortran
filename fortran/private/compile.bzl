@@ -104,9 +104,8 @@ def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includ
     module_dirs = []
     input_module_dirs = []
     for mod_dir in module_map.values():
-        if mod_dir:
-            module_dirs.append(mod_dir.path)
-            input_module_dirs.append(mod_dir)
+        module_dirs.append(mod_dir.path)
+        input_module_dirs.append(mod_dir)
 
     for dir_path in module_dirs:
         if toolchain.supports_module_path:
