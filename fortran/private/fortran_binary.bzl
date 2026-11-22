@@ -1,5 +1,6 @@
 """Implementation of fortran_binary rule."""
 
+load(":compile.bzl", "MODULE_ORDER_ATTRS")
 load(":executable.bzl", "EXECUTABLE_ATTRS", "fortran_executable_impl")
 
 def _fortran_binary_impl(ctx):
@@ -20,7 +21,7 @@ fortran_binary = rule(
             linkopts = ["-llapack"],
         )
     """,
-    attrs = EXECUTABLE_ATTRS,
+    attrs = EXECUTABLE_ATTRS | MODULE_ORDER_ATTRS,
     executable = True,
     toolchains = ["@rules_fortran//fortran:toolchain_type"],
 )

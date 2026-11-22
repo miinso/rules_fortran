@@ -13,7 +13,7 @@ This rule:
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load(":compile.bzl", "COMPILE_ATTRS", "compile_sources")
+load(":compile.bzl", "COMPILE_ATTRS", "MODULE_ORDER_ATTRS", "compile_sources")
 load(":providers.bzl", "FortranInfo")
 
 def _fortran_library_impl(ctx):
@@ -26,7 +26,7 @@ def _fortran_library_impl(ctx):
 
     compiled = compile_sources(ctx, toolchain)
     objects = compiled.objects  # `*.o` files for archiving
-    modules = compiled.modules  # module directories for dependents, one per source (0 or more .mod files each)
+    modules = compiled.modules  # module directories for dependents (0 or more .mod files each)
 
     # Archive compiled objects into static library (`*.a` file)
     archive = None
@@ -145,7 +145,7 @@ fortran_library = rule(
             deps = [":math", ":advanced"],
         )
     """,
-    attrs = COMPILE_ATTRS | {
+    attrs = COMPILE_ATTRS | MODULE_ORDER_ATTRS | {
         "alwayslink": attr.bool(
             default = False,
             doc = "If True, every object of this library is linked into any binary that depends on it, " +

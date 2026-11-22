@@ -85,18 +85,20 @@ The `deps` attribute makes all modules from dependencies available when compilin
 
 Unlike C/C++ headers which are just textual includes, Fortran modules are compiled artifacts. The build system must ensure modules are compiled before their users - this is handled automatically through `deps`.
 
-::: warning One limit to know about
-Ordering is handled *between targets*, not inside one. Every source in `srcs` is compiled on its own and only sees modules that come from `deps`. So this does not build:
+### Modules Inside One Target
+
+Sources of the same target can use each other's modules too, and the order of `srcs` does not matter:
 
 ```starlark
 fortran_library(
     name = "solver",
-    srcs = ["types.f90", "solver.f90"],  # solver.f90 has `use types`
+    srcs = ["solver.f90", "types.f90"],  # solver.f90 has `use types`
 )
 ```
 
-Put the module in its own `fortran_library` and depend on it, as in the example above.
-:::
+For a target with more than one source, rules_fortran reads the `module`, `submodule` and `use` statements, sorts the sources, and writes all of the target's module files in one step before compiling each source on its own. Two sources of one target that use each other in a cycle, or that define the same module, are reported as an error.
+
+The statements are read as written, before preprocessing. A `use` hidden behind a macro, or a module name built by one, is not seen; put such a module in its own `fortran_library` and depend on it.
 
 ### C Interoperability
 

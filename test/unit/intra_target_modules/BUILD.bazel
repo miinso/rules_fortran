@@ -1,0 +1,5 @@
+"""Unit tests for sources of one target that use each other's modules."""
+
+load(":intra_target_modules_test.bzl", "intra_target_modules_test_suite")
+
+intra_target_modules_test_suite(name = "intra_target_modules_test")

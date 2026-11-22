@@ -1,5 +1,6 @@
 """Implementation of fortran_test rule."""
 
+load(":compile.bzl", "MODULE_ORDER_ATTRS")
 load(":executable.bzl", "EXECUTABLE_ATTRS", "TEST_ONLY_ATTRS", "fortran_executable_impl")
 
 def _fortran_test_impl(ctx):
@@ -19,7 +20,7 @@ fortran_test = rule(
             deps = [":mylib"],
         )
     """,
-    attrs = EXECUTABLE_ATTRS | TEST_ONLY_ATTRS,
+    attrs = EXECUTABLE_ATTRS | TEST_ONLY_ATTRS | MODULE_ORDER_ATTRS,
     test = True,
     toolchains = ["@rules_fortran//fortran:toolchain_type"],
 )
