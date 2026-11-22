@@ -15,6 +15,23 @@ def _needs_preprocessing(src):
     ext = src.extension
     return ext in ["F", "F90", "F95", "F03", "F08"]
 
+def _output_stem(ctx, src):
+    """Package-relative output stem for a source, e.g. `sub/util.f90` -> `sub/util_f90`.
+
+    keeps the source dir so same-basename srcs in one target dont collide.
+    """
+    path = src.short_path
+    prefix = ctx.label.package + "/" if ctx.label.package else ""
+    if path.startswith("../"):
+        # external repo file: `../repo/pkg/file` -> `repo/pkg/file`
+        path = path[len("../"):]
+        prefix = ctx.label.workspace_root[len("external/"):] + "/" + prefix
+    if path.startswith(prefix):
+        # src lives under this target's package
+        path = path[len(prefix):]
+    dirname, sep, basename = path.rpartition("/")
+    return dirname + sep + basename.replace(".", "_")
+
 def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includes = [], hdrs = []):
     """Compile a single Fortran source file.
 
@@ -33,7 +50,7 @@ def compile_fortran(ctx, toolchain, src, module_map, copts, defines = [], includ
     """
 
     # Declare output files
-    src_base = src.basename.replace(".", "_")
+    src_base = _output_stem(ctx, src)
     obj = ctx.actions.declare_file(
         "{}_objs/{}.o".format(ctx.label.name, src_base),
     )

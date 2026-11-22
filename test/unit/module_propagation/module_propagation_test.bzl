@@ -2,7 +2,7 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("//:defs.bzl", "fortran_library")
+load("//:defs.bzl", "fortran_library", "fortran_test")
 load("//fortran/private:providers.bzl", "FortranInfo")
 
 def _transitive_modules_excludes_cc_outputs_test_impl(ctx):
@@ -133,6 +133,29 @@ def module_propagation_test_suite(name):
         tags = ["manual"],
     )
 
+    # same basename across two deps: compile + run a real `use` of both
+    fortran_test(
+        name = "same_basename_two_targets_run_test",
+        srcs = ["same_basename_main.f90"],
+        deps = [":same_basename_a", ":same_basename_b"],
+    )
+
+    # same basename inside one target
+    fortran_library(
+        name = "same_basename_one_target",
+        srcs = [
+            "same_basename_a/util.f90",
+            "same_basename_b/util.f90",
+        ],
+        tags = ["manual"],
+    )
+
+    fortran_test(
+        name = "same_basename_one_target_run_test",
+        srcs = ["same_basename_main.f90"],
+        deps = [":same_basename_one_target"],
+    )
+
     # Create tests
     transitive_modules_excludes_cc_outputs_test(
         name = "transitive_modules_excludes_cc_outputs_test",
@@ -156,5 +179,7 @@ def module_propagation_test_suite(name):
             ":transitive_modules_excludes_cc_outputs_test",
             ":modules_propagate_transitively_test",
             ":same_basename_sources_test",
+            ":same_basename_two_targets_run_test",
+            ":same_basename_one_target_run_test",
         ],
     )
