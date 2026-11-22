@@ -14,6 +14,18 @@ bzl_library(
     deps = ["//fortran/private:rules"],
 )
 
+# one load file per symbol, same symbols as defs.bzl
+bzl_library(
+    name = "per_symbol",
+    srcs = [
+        "fortran_binary.bzl",
+        "fortran_info.bzl",
+        "fortran_library.bzl",
+        "fortran_test.bzl",
+    ],
+    deps = ["//fortran/private:rules"],
+)
+
 bzl_library(
     name = "repositories",
     srcs = ["repositories.bzl"],
@@ -47,6 +59,10 @@ filegroup(
 
 exports_files([
     "defs.bzl",
+    "fortran_binary.bzl",
+    "fortran_info.bzl",
+    "fortran_library.bzl",
+    "fortran_test.bzl",
     "repositories.bzl",
     "extensions.bzl",
     "toolchain.bzl",

@@ -1,7 +1,7 @@
 """Unit tests for fortran_toolchain options, using toolchains whose tools are never run."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("//:defs.bzl", "fortran_binary", "fortran_library")
+load("//fortran:defs.bzl", "fortran_binary", "fortran_library")
 load("//fortran:toolchain.bzl", "fortran_toolchain", "fortran_toolchain_alias")
 load(
     "//test/unit:common.bzl",

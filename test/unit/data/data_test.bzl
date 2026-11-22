@@ -1,7 +1,7 @@
 """Unit tests for the data attribute."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("//:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
+load("//fortran:defs.bzl", "fortran_binary", "fortran_library", "fortran_test")
 
 def _data_in_runfiles_test_impl(ctx):
     """Test that the data file is in the target's runfiles."""

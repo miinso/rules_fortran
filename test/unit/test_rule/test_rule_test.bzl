@@ -1,7 +1,7 @@
 """Unit tests for fortran_test: its attributes must behave as they do on fortran_binary."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("//:defs.bzl", "fortran_test")
+load("//fortran:defs.bzl", "fortran_test")
 load("//test/unit:common.bzl", "assert_argv_contains")
 
 def _test_attrs_reach_actions_test_impl(ctx):

@@ -2,7 +2,7 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
-load("//:defs.bzl", "fortran_library")
+load("//fortran:defs.bzl", "fortran_library")
 load("//fortran/private:providers.bzl", "FortranInfo")
 
 def _fortran_library_provides_ccinfo_test_impl(ctx):
