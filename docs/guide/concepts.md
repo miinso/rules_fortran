@@ -96,9 +96,11 @@ fortran_library(
 )
 ```
 
-For a target with more than one source, rules_fortran reads the `module`, `submodule` and `use` statements, sorts the sources, and writes all of the target's module files in one step before compiling each source on its own. Two sources of one target that use each other in a cycle, or that define the same module, are reported as an error.
+For a target with more than one source, rules_fortran reads the `module`, `submodule` and `use` statements of each source, sorts the sources, and writes all of the target's module files in one step before compiling each source on its own. Continuation lines, comments and character strings are understood, in both source forms. Files pulled in with `INCLUDE` or `#include` are read as part of the including source when they are listed in `hdrs` (or `srcs`) and found next to it or in `includes`. Two sources of one target that use each other in a cycle, or that define the same module, are reported as an error; one included file that defines a module counts once, however many sources include it.
 
-The statements are read as written, before preprocessing. A `use` hidden behind a macro, or a module name built by one, is not seen; put such a module in its own `fortran_library` and depend on it.
+The preprocessor is not run: sources are read as written, so every branch of an `#if` or `#ifdef` counts. A `use` in an inactive branch still orders the sources, and can be reported as a cycle the compiler would never see. A `module` in an inactive branch still counts as defined, so a stub and a real module under `#ifdef`/`#ifndef` in two files are reported as defined twice. A `use` or module name built by a macro, or an `#include` whose file name comes from one, is not seen. In these cases, put the modules concerned in their own `fortran_library` and depend on it, or pick the sources with `select()`.
+
+In fixed form, blanks inside a keyword or a name on one line (`MOD ULE A`) and text in Hollerith constants (`5Hx; y`) are not understood; write those statements the usual way.
 
 ### Prebuilt Libraries
 

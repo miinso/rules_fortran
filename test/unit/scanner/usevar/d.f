@@ -1,0 +1,7 @@
+      MODULE ZU
+      INTEGER USEFUL(3)
+      CONTAINS
+      SUBROUTINE S
+      USE FUL(1) = 2
+      END SUBROUTINE
+      END MODULE

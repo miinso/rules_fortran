@@ -20,7 +20,8 @@ COMPILE_ATTRS = {
     ),
     "defines": attr.string_list(
         doc = "Preprocessor defines (e.g., ['_OPENMP', 'USE_MPI']). They apply to this target's " +
-              "preprocessed sources only, i.e. those with an uppercase extension (.F, .F90, ...).",
+              "preprocessed sources only: those with an uppercase extension (.F, .F90, ...), " +
+              "or every source when copts turn the preprocessor on (-cpp).",
     ),
     "deps": attr.label_list(
         providers = [[FortranInfo], [CcInfo]],
@@ -28,10 +29,10 @@ COMPILE_ATTRS = {
               "Their modules are visible to srcs, and they are linked into the final executable.",
     ),
     "hdrs": attr.label_list(
-        allow_files = [".inc", ".mod"],
-        doc = "Header/include files (.inc, .mod) for INCLUDE statements and pre-built modules. " +
-              "Used by this target's srcs only; they are not passed on to dependents " +
-              "(for prebuilt modules that dependents need too, see fortran_import).",
+        allow_files = True,
+        doc = "Files read through INCLUDE or #include (any extension), and prebuilt .mod files. " +
+              "They are never compiled. Used by this target's srcs only; they are not passed on " +
+              "to dependents (for prebuilt modules that dependents need too, see fortran_import).",
     ),
     "includes": attr.string_list(
         doc = "List of include directories, relative to this package, to add to the compile line. " +
@@ -77,18 +78,35 @@ def _output_stem(ctx, src):
         # src lives under this target's package
         path = path[len(prefix):]
     dirname, sep, basename = path.rpartition("/")
-    return dirname + sep + basename.replace(".", "_")
+    stem = dirname + sep + basename.replace(".", "_")
 
-def check_defines(srcs, defines):
+    # blanks and quotes would need quoting in the archive's param file
+    return "".join([c if c.isalnum() or c in "_-+./" else "_" for c in stem.elems()])
+
+def _cpp_from_copts(copts):
+    """Whether copts turn the preprocessor on for every source (the last -cpp / -nocpp wins)."""
+    on = False
+    for opt in copts:
+        if opt in ("-cpp", "-fpp"):
+            on = True
+        elif opt in ("-nocpp", "-nofpp"):
+            on = False
+    return on
+
+def check_defines(srcs, defines, copts = []):
     """Fails when defines are set but no source would see them (see #14).
 
-    Only sources with an uppercase extension are preprocessed. A target may
-    mix both kinds; the defines then apply to the preprocessed ones.
+    Sources with an uppercase extension are preprocessed, and every source is
+    when copts turn the preprocessor on. A target may mix both kinds; the
+    defines then apply to the preprocessed ones.
 
     Args:
         srcs: list of source Files of the target
         defines: the target's defines
+        copts: the target's copts
     """
+    if _cpp_from_copts(copts):
+        return
     if defines and srcs and not [src for src in srcs if _needs_preprocessing(src)]:
         fail(
             "defines = {} specified but no source is preprocessed. ".format(defines) +
@@ -124,6 +142,57 @@ def _include_dirs(ctx, includes):
         dirs.append(inc_path)
     return dirs
 
+def _source_arg(src):
+    """A source path as a compiler argument: `./` in front keeps `-x.f90` from reading as an option."""
+    return "./" + src.path if src.path.startswith("-") else src.path
+
+def _include_flags(flags):
+    """The dirs of the -I<dir> and -I <dir> options in flags, in order."""
+    dirs = []
+    take_next = False
+    for flag in flags:
+        if take_next:
+            dirs.append(flag)
+            take_next = False
+        elif flag == "-I":
+            take_next = True
+        elif flag.startswith("-I"):
+            dirs.append(flag[len("-I"):])
+    return dirs
+
+def _scan_options(flags):
+    """What the scanner must know about the compile flags to read sources as the compiler does."""
+    openmp = False
+    d_lines = False
+    line_length = None
+    for flag in flags:
+        if flag == "-fopenmp":
+            openmp = True
+        elif flag == "-fno-openmp":
+            openmp = False
+        elif flag == "-fd-lines-as-code":
+            d_lines = True
+        elif flag in ("-fd-lines-as-comments", "-fno-d-lines-as-code"):
+            d_lines = False
+        elif flag.startswith("-ffixed-line-length"):
+            value = flag[len("-ffixed-line-length") + 1:]
+            line_length = "0" if value == "none" else value
+    options = []
+    if openmp:
+        options.append("openmp")
+    if d_lines:
+        options.append("d-lines-as-code")
+    if line_length != None:
+        options.append("fixed-line-length " + line_length)
+    if _cpp_from_copts(flags):
+        options.append("cpp")
+    return options
+
+# a form or preprocessing switch in copts would apply to every source of the
+# one module pass run, while each per-source compile overrides it with the
+# switch for its own extension. dropped, so both steps read a source the same way
+_PER_SOURCE_SWITCHES = ["-ffixed-form", "-ffree-form", "-nocpp", "-nofpp"]
+
 def _module_pass(ctx, toolchain, srcs, modules_from_deps):
     """Builds the .mod files of all srcs up front, in dependency order.
 
@@ -150,16 +219,24 @@ def _module_pass(ctx, toolchain, srcs, modules_from_deps):
     empty = ctx.actions.declare_file(prefix + "empty.f90")
     module_dir = ctx.actions.declare_directory(prefix + "modules")
 
+    flags = toolchain.compiler_flags + ctx.attr.copts
+    include_dirs = _include_flags(flags) + _include_dirs(ctx, ctx.attr.includes)
+
+    # one `key value` per line, see module_order.f90
     scan_args = ctx.actions.args()
-    scan_args.add(order)
-    scan_args.add(empty)
-    scan_args.add_all(srcs)
+    scan_args.add(order, format = "order %s")
+    scan_args.add(empty, format = "empty %s")
+    scan_args.add_all(_scan_options(flags), format_each = "option %s")
+    scan_args.add_all(include_dirs, format_each = "include %s")
+    scan_args.add_all(ctx.files.hdrs, format_each = "file %s")
+    scan_args.add_all(srcs, format_each = "src %s")
     scan_args.use_param_file("%s", use_always = True)
     scan_args.set_param_file_format("multiline")
     ctx.actions.run(
         executable = ctx.executable._module_order,
         arguments = [scan_args],
-        inputs = srcs,
+        # hdrs too: INCLUDE / #include'd files can define and use modules
+        inputs = srcs + ctx.files.hdrs,
         outputs = [order, empty],
         mnemonic = "FortranModuleOrder",
         progress_message = "Ordering Fortran modules of %{label}",
@@ -167,14 +244,18 @@ def _module_pass(ctx, toolchain, srcs, modules_from_deps):
 
     args = ctx.actions.args()
     args.add_all(toolchain.compiler_flags)
-    args.add_all(ctx.attr.copts)
+    args.add_all([opt for opt in ctx.attr.copts if opt not in _PER_SOURCE_SWITCHES])
 
-    # no form or preprocessing switches here: one run sees every kind of
-    # source, and the compiler picks both from each file's extension
-    if [src for src in srcs if _needs_preprocessing(src)]:
+    # no form or preprocessing switches of our own: one run sees every kind
+    # of source, and the compiler picks both from each file's extension
+    if _cpp_from_copts(ctx.attr.copts) or [src for src in srcs if _needs_preprocessing(src)]:
         args.add_all(toolchain.preprocessor_flags)
         args.add_all(ctx.attr.defines, format_each = "-D%s")
     args.add(toolchain.module_flag_format.format(module_dir.path))
+
+    # the target's own modules before any dep's: the compiler searches -I
+    # dirs before the -J one, so a dep's module of the same name would win
+    args.add("-I" + module_dir.path)
     args.add_all(
         modules_from_deps,
         map_each = _module_search_dir,
@@ -184,8 +265,10 @@ def _module_pass(ctx, toolchain, srcs, modules_from_deps):
     )
     args.add_all(_include_dirs(ctx, ctx.attr.includes), format_each = "-I%s")
     args.add("-fsyntax-only")
+
+    # shell format: an arg with a blank or a quote stays one arg
     args.use_param_file("@%s", use_always = True)
-    args.set_param_file_format("multiline")
+    args.set_param_file_format("shell")
     ctx.actions.run(
         executable = toolchain.compiler,
         # the order file is a response file too, read after the flags
@@ -242,8 +325,8 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
     else:
         args.add("-ffixed-form")
 
-    # Preprocessing
-    if _needs_preprocessing(src):
+    # Preprocessing: by extension, or for every source when copts turn it on
+    if _needs_preprocessing(src) or _cpp_from_copts(copts):
         # Add preprocessor enable flag (e.g., -cpp or -fpp)
         args.add(toolchain.preprocessor_flag)
 
@@ -251,7 +334,8 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
         args.add_all(toolchain.preprocessor_flags)
 
         # Add target-specific preprocessor defines.
-        # sources that are not preprocessed get none; check_defines() rejects
+        # sources that are not preprocessed get none (the compiler would ignore
+        # them, as it does in the module pass); check_defines() rejects
         # a target where that leaves the defines unused
         for define in defines:
             args.add("-D" + define)
@@ -274,14 +358,14 @@ def compile_fortran(ctx, toolchain, src, modules, copts, defines = [], includes 
 
     # Compile command
     args.add("-c")
-    args.add(src.path)
+    args.add(_source_arg(src))
     args.add("-o", obj.path)
     # args.add("-###")
 
     # Use param file to avoid "Argument list too long" errors on Windows/Linux
     # This is especially important for large projects like LAPACK with thousands of module directories
     args.use_param_file("@%s", use_always = True)
-    args.set_param_file_format("multiline")
+    args.set_param_file_format("shell")
 
     # Run compilation
     ctx.actions.run(
@@ -320,7 +404,7 @@ def compile_sources(ctx, toolchain):
     dep_modules = [dep[FortranInfo].transitive_modules for dep in ctx.attr.deps if FortranInfo in dep]
     modules_from_deps = depset(transitive = dep_modules)
 
-    check_defines(srcs, ctx.attr.defines)
+    check_defines(srcs, ctx.attr.defines, ctx.attr.copts)
 
     # with several sources, their modules are built first so the sources can
     # USE each other. a single source has no siblings and skips that (so does
@@ -328,7 +412,9 @@ def compile_sources(ctx, toolchain):
     shared_modules = None
     if len(srcs) > 1 and hasattr(ctx.executable, "_module_order"):
         shared_modules = _module_pass(ctx, toolchain, srcs, modules_from_deps)
-        visible_modules = depset([shared_modules], transitive = dep_modules)
+
+        # preorder: the target's own modules are searched before any dep's
+        visible_modules = depset([shared_modules], transitive = dep_modules, order = "preorder")
     else:
         visible_modules = modules_from_deps
 
