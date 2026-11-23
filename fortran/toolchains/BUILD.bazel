@@ -1,8 +1,13 @@
 """Fortran toolchain definitions using prebuilt LLVM/Flang binaries."""
 
+load("@flang_macos_sdk//:sdk.bzl", "MACOS_SDK")
 load("//fortran:toolchain.bzl", "fortran_toolchain")
 
 package(default_visibility = ["//visibility:public"])
+
+# flang finds libSystem, the sdk version and -syslibroot from -isysroot; the
+# minimum macos version comes from the cc toolchain (see fortran_toolchain)
+_MACOS_SDK_FLAGS = ["-isysroot", MACOS_SDK] if MACOS_SDK else []
 
 # ===== Linux x86_64 Toolchain =====
 
@@ -84,10 +89,9 @@ fortran_toolchain(
         # "-Wall",
         # "-Wextra",
         "-pedantic",
-    ],
+    ] + _MACOS_SDK_FLAGS,
     linker = "@flang_macos_x86_64//:flang-new",
-    linker_flags = [
-        "-Wl,-syslibroot,/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+    linker_flags = _MACOS_SDK_FLAGS + [
         "-lm",
         "-lpthread",
     ],
@@ -120,10 +124,9 @@ fortran_toolchain(
         # "-Wall",
         # "-Wextra",
         "-pedantic",
-    ],
+    ] + _MACOS_SDK_FLAGS,
     linker = "@flang_macos_aarch64//:flang-new",
-    linker_flags = [
-        "-Wl,-syslibroot,/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+    linker_flags = _MACOS_SDK_FLAGS + [
         "-lm",
         "-lpthread",
     ],

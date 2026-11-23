@@ -163,8 +163,9 @@ def fortran_executable_impl(ctx, mnemonic, kind):
     args.add_all(ctx.attr.linkopts)
 
     # Use param file to avoid (possible) "Argument list too long" errors
+    # shell format: flang reads it gnu-style everywhere, and paths may hold blanks
     args.use_param_file("@%s", use_always = True)
-    args.set_param_file_format("multiline")
+    args.set_param_file_format("shell")
 
     ctx.actions.run(
         executable = toolchain.linker,
