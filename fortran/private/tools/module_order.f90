@@ -47,6 +47,11 @@ program module_order
 
   type(string), allocatable :: srcs(:), files(:), include_dirs(:)
   integer :: n_srcs = 0, n_files = 0, n_include_dirs = 0
+
+  ! the files the current source has included so far: each is read once, since
+  ! #if is not evaluated and a guarded self-include would never end
+  type(string), allocatable :: included(:)
+  integer :: n_included = 0
   integer, allocatable :: files_sorted(:)
 
   ! what each source provides and needs. the entries of one source are
@@ -61,7 +66,7 @@ program module_order
   integer :: n_sorted = 0
   integer :: i
 
-  allocate(srcs(16), files(16), include_dirs(16), provide_name(16), provide_origin(16), need_name(16))
+  allocate(srcs(16), files(16), include_dirs(16), included(16), provide_name(16), provide_origin(16), need_name(16))
   allocate(provide_owner(16), need_owner(16))
   call read_params()
 
@@ -69,6 +74,7 @@ program module_order
   do i = 1, n_srcs
     first_provide(i) = n_provides + 1
     first_need(i) = n_needs + 1
+    n_included = 0
     call scan_file(i, srcs(i)%s, is_fixed_form(srcs(i)%s), &
                    cpp_everywhere .or. is_preprocessed(srcs(i)%s), 0)
     last_provide(i) = n_provides
@@ -865,24 +871,37 @@ contains
     if (depth >= max_include_depth) return
     candidate = normalized(name)
     if (starts_with(candidate, "/") .or. index(candidate, ":") == 2) then
-      if (is_declared(candidate)) call scan_file(owner, candidate, fixed, preprocessed, depth + 1)
+      if (is_declared(candidate)) call scan_once(owner, candidate, fixed, preprocessed, depth)
       return
     end if
     if (near_includer) then
       candidate = normalized(join(dirname(includer), name))
       if (is_declared(candidate)) then
-        call scan_file(owner, candidate, fixed, preprocessed, depth + 1)
+        call scan_once(owner, candidate, fixed, preprocessed, depth)
         return
       end if
     end if
     do k = 1, n_include_dirs
       candidate = normalized(join(include_dirs(k)%s, name))
       if (is_declared(candidate)) then
-        call scan_file(owner, candidate, fixed, preprocessed, depth + 1)
+        call scan_once(owner, candidate, fixed, preprocessed, depth)
         return
       end if
     end do
   end subroutine include_file
+
+  ! a second read of a file finds the same modules and uses again
+  recursive subroutine scan_once(owner, file, fixed, preprocessed, depth)
+    integer, intent(in) :: owner, depth
+    character(len=*), intent(in) :: file
+    logical, intent(in) :: fixed, preprocessed
+    integer :: j
+    do j = 1, n_included
+      if (included(j)%s == file) return
+    end do
+    call add(included, n_included, file)
+    call scan_file(owner, file, fixed, preprocessed, depth + 1)
+  end subroutine scan_once
 
   ! ---- ordering ----
 

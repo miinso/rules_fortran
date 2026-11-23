@@ -1,0 +1,30 @@
+! includes itself for each part, the way nemo's lbc_lnk_pt2pt_generic.h90 does
+#if ! defined PART_A && ! defined PART_B
+  subroutine both(x)
+    integer(ik), intent(inout) :: x
+#define PART_A
+#  include "tmpl.h90"
+#undef PART_A
+#define PART_B
+#  include "tmpl.h90"
+#undef PART_B
+#define PART_A
+#  include "tmpl.h90"
+#undef PART_A
+#define PART_B
+#  include "tmpl.h90"
+#undef PART_B
+#define PART_A
+#  include "tmpl.h90"
+#undef PART_A
+#define PART_B
+#  include "tmpl.h90"
+#undef PART_B
+  end subroutine both
+#endif
+#if defined PART_A
+    x = x + 1
+#endif
+#if defined PART_B
+    x = x * 2
+#endif
