@@ -184,6 +184,26 @@ build_test(
     ],
 )
 
+# Scenario: a file that includes itself behind an #if guard
+# Given a template that #includes itself six times, each under a macro its guard checks
+# When the library is built
+# Then the scanner reads the file once per source, and does not follow it without end
+fortran_library(
+    name = "self_include",
+    srcs = [
+        "selfinc/m.F90",
+        "selfinc/k.f90",
+    ],
+    hdrs = ["selfinc/tmpl.h90"],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "guarded_self_include_test",
+    timeout = "short",
+    targets = [":self_include"],
+)
+
 # Scenario: a byte-order mark and non-breaking spaces
 # Given a source starting with a UTF-8 BOM, and a use indented with non-breaking spaces
 # When the libraries are built
