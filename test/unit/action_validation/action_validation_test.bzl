@@ -1,6 +1,7 @@
 """Unit tests for action validation (compiler flags, includes, defines)."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("//fortran:defs.bzl", "fortran_library")
 load("//test/unit:common.bzl", "assert_argv_contains", "assert_argv_contains_prefix")
 
@@ -234,6 +235,29 @@ hdrs_mod_appear_in_compile_action_test = analysistest.make(
     _hdrs_mod_appear_in_compile_action_test_impl,
 )
 
+def _generated_hdr_include_dir_test_impl(ctx):
+    """Test that includes also covers the output tree when a hdr is generated."""
+    env = analysistest.begin(ctx)
+    actions = [a for a in analysistest.target_actions(env) if a.mnemonic == "FortranCompile"]
+    asserts.true(env, len(actions) > 0, "Expected a FortranCompile action")
+    for action in actions:
+        dirs = [a for a in action.argv if a.startswith("-I") and a.endswith("test/unit/action_validation/gen")]
+        asserts.equals(env, 2, len(dirs), "Expected the source and the output include dir, got {}".format(dirs))
+        asserts.true(env, len(dirs) == 2 and dirs[1] != "-Itest/unit/action_validation/gen", "Expected an output dir in {}".format(dirs))
+    return analysistest.end(env)
+
+generated_hdr_include_dir_test = analysistest.make(_generated_hdr_include_dir_test_impl)
+
+def _no_output_include_dir_test_impl(ctx):
+    """Test that source-only hdrs add no output include dir."""
+    env = analysistest.begin(ctx)
+    for action in [a for a in analysistest.target_actions(env) if a.mnemonic == "FortranCompile"]:
+        dirs = [a for a in action.argv if a.startswith("-I") and a.endswith("/include")]
+        asserts.equals(env, ["-Itest/unit/action_validation/include"], dirs)
+    return analysistest.end(env)
+
+no_output_include_dir_test = analysistest.make(_no_output_include_dir_test_impl)
+
 def action_validation_test_suite(name):
     """Test suite for action validation."""
 
@@ -367,6 +391,41 @@ def action_validation_test_suite(name):
         target_under_test = ":lib_with_mod_hdrs",
     )
 
+    # Scenario: a generated header found through includes
+    # Given a header written by a genrule into gen/, listed in hdrs, and includes = ["gen"]
+    # When the library is built
+    # Then the output tree's gen/ is searched too, and the INCLUDE line finds the header
+    native.genrule(
+        name = "generated_params",
+        outs = ["gen/params.h"],
+        cmd = "echo '  integer, parameter :: generated_n = 3' > $@",
+        tags = ["manual"],
+    )
+    fortran_library(
+        name = "lib_with_generated_hdr",
+        srcs = ["uses_generated.f90"],
+        hdrs = [":gen/params.h"],
+        includes = ["gen"],
+        tags = ["manual"],
+    )
+    generated_hdr_include_dir_test(
+        name = "generated_hdr_include_dir_test",
+        target_under_test = ":lib_with_generated_hdr",
+    )
+    build_test(
+        name = "generated_hdr_builds_test",
+        targets = [":lib_with_generated_hdr"],
+    )
+
+    # Scenario: includes without generated headers
+    # Given a library with includes and no generated hdrs
+    # When its compile action is created
+    # Then only the source include dir is passed, so no compiler warns about a missing dir
+    no_output_include_dir_test(
+        name = "no_output_include_dir_test",
+        target_under_test = ":lib_with_includes",
+    )
+
     # Bundle into test suite
     native.test_suite(
         name = name,
@@ -380,5 +439,8 @@ def action_validation_test_suite(name):
             ":defines_with_lowercase_extension_rejected_test",
             ":hdrs_inc_appear_in_compile_action_test",
             ":hdrs_mod_appear_in_compile_action_test",
+            ":generated_hdr_include_dir_test",
+            ":generated_hdr_builds_test",
+            ":no_output_include_dir_test",
         ],
     )
