@@ -122,9 +122,16 @@ def _module_search_dir(module):
     return module.path if module.is_directory else module.dirname
 
 def _include_dirs(ctx, includes):
-    """Execroot paths for the `includes` attr (resolved relative to the package, like rules_cc)."""
+    """Execroot paths for the `includes` attr (resolved relative to the package, like rules_cc).
+
+    Each dir is followed by its twin under the output root when the target has generated hdrs.
+    """
     dirs = []
     package = ctx.label.package
+    generated_roots = []
+    for f in ctx.files.hdrs:
+        if not f.is_source and f.root.path not in generated_roots:
+            generated_roots.append(f.root.path)
     for inc in includes:
         # no "." and ".." to protect the workspace (see cc_helper.bzl#L827-L833)
         if ".." in inc:
@@ -140,6 +147,11 @@ def _include_dirs(ctx, includes):
         if ctx.label.workspace_root:
             inc_path = ctx.label.workspace_root + "/" + inc_path
         dirs.append(inc_path)
+
+        # generated hdrs are under the output root; only when there are any,
+        # some compilers warn about an include dir that does not exist
+        for root in generated_roots:
+            dirs.append(root + "/" + inc_path)
     return dirs
 
 def _source_arg(src):
