@@ -4,6 +4,7 @@ load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@rules_cc//cc:action_names.bzl", "ACTION_NAMES")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+load("//fortran/private:macos.bzl", "macos_min_os_flags")
 load("//fortran/private:providers.bzl", "FortranToolchainInfo")
 
 def _make_runtime_ccinfo(ctx, cc_toolchain, feature_configuration, runtime_libs):
@@ -64,14 +65,14 @@ def _make_runtime_ccinfo(ctx, cc_toolchain, feature_configuration, runtime_libs)
         linking_context = linking_context,
     )
 
-_MIN_OS_PREFIXES = ("-mmacosx-version-min=", "-mmacos-version-min=")
-
 def _cc_macos_min_os_flags(ctx, cc_toolchain, feature_configuration):
-    """the cc toolchain's own -mmacosx-version-min, so fortran objects match cc ones.
+    """the cc toolchain's own minimum macos version, so fortran objects match cc ones.
 
     it follows --macos_minimum_os (the default is the sdk version) and reads the
     same on every bazel version; [] off macos or when the cc toolchain sets none.
     """
+    if not ctx.attr.macos_minimum_os_from_cc:
+        return []
     if not ctx.target_platform_has_constraint(ctx.attr._macos_constraint[platform_common.ConstraintValueInfo]):
         return []
     variables = cc_common.create_compile_variables(
@@ -84,8 +85,7 @@ def _cc_macos_min_os_flags(ctx, cc_toolchain, feature_configuration):
         action_name = ACTION_NAMES.c_compile,
         variables = variables,
     )
-    found = [arg for arg in argv if arg.startswith(_MIN_OS_PREFIXES)]
-    return found[-1:]
+    return macos_min_os_flags(argv)
 
 def _fortran_toolchain_impl(ctx):
     # Collect runtime library files from dependencies
@@ -187,6 +187,11 @@ fortran_toolchain = rule(
         "linker_flags": attr.string_list(
             default = [],
             doc = "Default flags to pass to the linker.",
+        ),
+        "macos_minimum_os_from_cc": attr.bool(
+            default = True,
+            doc = "On macOS targets, start compile and link flags with the cc toolchain's minimum macOS version " +
+                  "(-mmacosx-version-min=), so Fortran and C objects agree. Turn off for a compiler without that flag.",
         ),
         "module_flag_format": attr.string(
             default = "-J{}",

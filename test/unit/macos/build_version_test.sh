@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # compares the LC_BUILD_VERSION (minos, sdk) of a fortran binary with a cc_library's objects
-set -euo pipefail
+set -eu
 
 bin=$1; shift
 archive=""
@@ -9,7 +9,9 @@ for f in "$@"; do case "$f" in *.a) archive=$f ;; esac; done
 
 # prints "minos sdk" of the first LC_BUILD_VERSION in a mach-o file or archive
 build_version() {
-  otool -l "$1" | awk '/LC_BUILD_VERSION/{f=1} f&&$1=="minos"{m=$2} f&&$1=="sdk"{print m, $2; exit}'
+  local out
+  out=$(otool -l "$1")
+  awk '/LC_BUILD_VERSION/{f=1} f&&$1=="minos"{m=$2} f&&$1=="sdk"{print m, $2; exit}' <<< "$out"
 }
 
 fortran=$(build_version "$bin")

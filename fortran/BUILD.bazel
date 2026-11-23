@@ -41,7 +41,11 @@ bzl_library(
 bzl_library(
     name = "toolchain",
     srcs = ["toolchain.bzl"],
-    deps = ["@rules_cc//cc/common"],  # for stardoc
+    deps = [
+        "//fortran/private:macos",
+        "//fortran/private:providers",
+        "@rules_cc//cc/common",  # for stardoc
+    ],
 )
 
 # For distribution

@@ -216,7 +216,8 @@ def _find_macos_sdk(repository_ctx):
 
     # xcrun answers for DEVELOPER_DIR, else the xcode-select choice; both re-run this rule
     getenv("DEVELOPER_DIR")
-    if hasattr(repository_ctx, "watch") and repository_ctx.path("/var/db/xcode_select_link").exists:
+    if hasattr(repository_ctx, "watch"):
+        # also catches the first xcode-select -s, before the link exists
         repository_ctx.watch("/var/db/xcode_select_link")
     result = repository_ctx.execute(["/usr/bin/xcrun", "--show-sdk-path"])
     sdk = result.stdout.strip() if result.return_code == 0 else ""
@@ -232,8 +233,11 @@ def _find_macos_sdk(repository_ctx):
     return ""
 
 def _macos_sdk_impl(repository_ctx):
-    _, os_type, _ = _get_platform_info(repository_ctx)
-    sdk = _find_macos_sdk(repository_ctx) if os_type == "macos" else ""
+    # not _get_platform_info: that fails on hosts without a flang tarball, and
+    # this repo is loaded for every fortran target
+    os_name = repository_ctx.os.name.lower()
+    is_macos = "mac" in os_name or "darwin" in os_name
+    sdk = _find_macos_sdk(repository_ctx) if is_macos else ""
 
     # an xcode / clt update keeps the path but rewrites the settings
     settings = repository_ctx.path(sdk + "/SDKSettings.json") if sdk else None
