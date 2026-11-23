@@ -1,0 +1,5 @@
+"""Unit tests for the macOS SDK and minimum OS flags."""
+
+load(":macos_test.bzl", "macos_test_suite")
+
+macos_test_suite(name = "macos_test")

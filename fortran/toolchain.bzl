@@ -1,6 +1,7 @@
 """Fortran toolchain definitions."""
 
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load("@rules_cc//cc:action_names.bzl", "ACTION_NAMES")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("//fortran/private:providers.bzl", "FortranToolchainInfo")
@@ -63,6 +64,29 @@ def _make_runtime_ccinfo(ctx, cc_toolchain, feature_configuration, runtime_libs)
         linking_context = linking_context,
     )
 
+_MIN_OS_PREFIXES = ("-mmacosx-version-min=", "-mmacos-version-min=")
+
+def _cc_macos_min_os_flags(ctx, cc_toolchain, feature_configuration):
+    """the cc toolchain's own -mmacosx-version-min, so fortran objects match cc ones.
+
+    it follows --macos_minimum_os (the default is the sdk version) and reads the
+    same on every bazel version; [] off macos or when the cc toolchain sets none.
+    """
+    if not ctx.target_platform_has_constraint(ctx.attr._macos_constraint[platform_common.ConstraintValueInfo]):
+        return []
+    variables = cc_common.create_compile_variables(
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+        user_compile_flags = [],
+    )
+    argv = cc_common.get_memory_inefficient_command_line(
+        feature_configuration = feature_configuration,
+        action_name = ACTION_NAMES.c_compile,
+        variables = variables,
+    )
+    found = [arg for arg in argv if arg.startswith(_MIN_OS_PREFIXES)]
+    return found[-1:]
+
 def _fortran_toolchain_impl(ctx):
     # Collect runtime library files from dependencies
     runtime_lib_files = []
@@ -86,12 +110,15 @@ def _fortran_toolchain_impl(ctx):
         runtime_libs = runtime_lib_files,
     )
 
+    # first, so the toolchain's own flags and copts / linkopts can still override it
+    min_os = _cc_macos_min_os_flags(ctx, cc_toolchain, feature_configuration)
+
     toolchain_info = FortranToolchainInfo(
         compiler = ctx.file.compiler,
         linker = ctx.file.linker,
         archiver = ctx.file.archiver,
-        compiler_flags = ctx.attr.compiler_flags,
-        linker_flags = ctx.attr.linker_flags,
+        compiler_flags = min_os + ctx.attr.compiler_flags,
+        linker_flags = min_os + ctx.attr.linker_flags,
         preprocessor_flag = ctx.attr.preprocessor_flag,
         preprocessor_flags = ctx.attr.preprocessor_flags,
         module_flag_format = ctx.attr.module_flag_format,
@@ -184,6 +211,9 @@ fortran_toolchain = rule(
         ),
         "_cc_toolchain": attr.label(
             default = Label("@bazel_tools//tools/cpp:current_cc_toolchain"),
+        ),
+        "_macos_constraint": attr.label(
+            default = Label("@platforms//os:macos"),
         ),
     },
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],

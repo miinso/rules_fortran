@@ -28,6 +28,7 @@ use_repo(
     "flang_linux_aarch64",
     "flang_linux_x86_64",
     "flang_macos_aarch64",
+    "flang_macos_sdk",
     "flang_macos_x86_64",
     "flang_windows_x86_64",
 )

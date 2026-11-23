@@ -204,6 +204,51 @@ _flang_host_alias = repository_rule(
     },
 )
 
+_CLT_SDK = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+
+def _find_macos_sdk(repository_ctx):
+    """the sdk flang should use: SDKROOT, else xcrun, else the command line tools one, else ""."""
+    getenv = getattr(repository_ctx, "getenv", repository_ctx.os.environ.get)
+
+    sdkroot = getenv("SDKROOT") or ""
+    if sdkroot.startswith("/") and sdkroot != "/" and repository_ctx.path(sdkroot).exists:
+        return sdkroot
+
+    # xcrun answers for DEVELOPER_DIR, else the xcode-select choice; both re-run this rule
+    getenv("DEVELOPER_DIR")
+    if hasattr(repository_ctx, "watch") and repository_ctx.path("/var/db/xcode_select_link").exists:
+        repository_ctx.watch("/var/db/xcode_select_link")
+    result = repository_ctx.execute(["/usr/bin/xcrun", "--show-sdk-path"])
+    sdk = result.stdout.strip() if result.return_code == 0 else ""
+    if sdk and repository_ctx.path(sdk).exists:
+        return sdk
+    if repository_ctx.path(_CLT_SDK).exists:
+        return _CLT_SDK
+
+    # buildifier: disable=print
+    print("rules_fortran: no macOS SDK found (xcrun: {}); flang links without -isysroot".format(
+        result.stderr.strip() or "no output",
+    ))
+    return ""
+
+def _macos_sdk_impl(repository_ctx):
+    _, os_type, _ = _get_platform_info(repository_ctx)
+    sdk = _find_macos_sdk(repository_ctx) if os_type == "macos" else ""
+
+    # an xcode / clt update keeps the path but rewrites the settings
+    settings = repository_ctx.path(sdk + "/SDKSettings.json") if sdk else None
+    if settings and settings.exists and hasattr(repository_ctx, "watch"):
+        repository_ctx.watch(settings)
+
+    repository_ctx.file("BUILD.bazel", 'exports_files(["sdk.bzl"])\n')
+    repository_ctx.file("sdk.bzl", '"""The macOS SDK found on this host ("" elsewhere)."""\n\nMACOS_SDK = {}\n'.format(repr(sdk)))
+
+_macos_sdk = repository_rule(
+    implementation = _macos_sdk_impl,
+    doc = "Finds the host's macOS SDK for the mac toolchains. Empty on other hosts.",
+    local = True,
+)
+
 def flang_register_toolchains(
         name = "flang",
         version = "v21.1.8",
@@ -236,3 +281,6 @@ def flang_register_toolchains(
         name = name,
         base_name = name,
     )
+
+    # the host's macos sdk (@flang_macos_sdk//:sdk.bzl)
+    _macos_sdk(name = "{}_macos_sdk".format(name))
