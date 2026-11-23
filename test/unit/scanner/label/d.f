@@ -1,0 +1,3 @@
+     0MODULE LD
+      USE LA
+      END MODULE LD

@@ -1,0 +1,3 @@
+      MODULE DA
+D     PRINT *, 1; MODULE DZ
+      END MODULE DA

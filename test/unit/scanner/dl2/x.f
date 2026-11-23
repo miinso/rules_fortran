@@ -1,0 +1,3 @@
+      MODULE DLX
+      INTEGER IX
+      END MODULE DLX

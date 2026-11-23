@@ -1,0 +1,545 @@
+# sources that the module scanner (fortran/private/tools/module_order.f90)
+# has to read the way the compiler does. every library lists its srcs against
+# their dependency order, so a wrong or missed module or use breaks the build
+
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//fortran:defs.bzl", "fortran_library", "fortran_test")
+
+# Scenario: statements continued over several lines
+# Given use, module and submodule statements split with free-form & and fixed-form column 6
+# And a fixed-form `MODULE SUBROUTINE` whose name is on the next line, in two files
+# And a fixed-form continuation marked with # in column 6
+# And keywords split over two lines, or glued to the name by the join
+# When the library is built
+# Then each statement is read whole, in any srcs order
+fortran_library(
+    name = "continuation",
+    srcs = [
+        "cont/a.f90",
+        "cont/b.f90",
+        "cont/c.f90",
+        "cont/f.f",
+        "cont/glued.f",
+        "cont/glued.f90",
+        "cont/hash_a.f",
+        "cont/hash_b.f",
+        "cont/s.f90",
+        "cont/split.f",
+        "cont/split.f90",
+        "cont/sub1.f",
+        "cont/sub2.f",
+        "cont/t.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "continued_statements_test",
+    targets = [":continuation"],
+)
+
+# Scenario: ; and ! inside character strings
+# Given strings that hold `; use sa` and `; module sc !`, also over a continued string
+# When the library is built
+# Then no use or module is read out of a string
+fortran_library(
+    name = "strings",
+    srcs = [
+        "str/a.f90",
+        "str/b.f90",
+        "str/c.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "semicolon_and_bang_in_strings_test",
+    targets = [":strings"],
+)
+
+# Scenario: an OpenMP conditional line
+# Given `!$ use oa` and copts = ["-fopenmp"]
+# When the library is built
+# Then the use counts, because -fopenmp makes it code
+fortran_library(
+    name = "omp_sentinel",
+    srcs = [
+        "omp/a.f90",
+        "omp/b.f90",
+    ],
+    copts = ["-fopenmp"],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "omp_sentinel_use_test",
+    targets = [":omp_sentinel"],
+)
+
+# Scenario: fixed-form D lines
+# Given a D line holding `; MODULE DZ`, and DZ defined in another file
+# And a D line holding a USE, built with -fd-lines-as-code
+# When both libraries are built
+# Then D lines are comments by default and code with -fd-lines-as-code
+fortran_library(
+    name = "dlines_comment",
+    srcs = [
+        "dl/a.f",
+        "dl/z.f",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "dlines_code",
+    srcs = [
+        "dl2/x.f",
+        "dl2/y.f",
+    ],
+    copts = ["-fd-lines-as-code"],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "d_lines_test",
+    targets = [
+        ":dlines_code",
+        ":dlines_comment",
+    ],
+)
+
+# Scenario: modules and uses inside INCLUDE files
+# Given a module defined only in an included file, and a use only in an included file
+# When the library is built with those files in hdrs
+# Then the included files are read as part of the including source
+fortran_library(
+    name = "fortran_include",
+    srcs = [
+        "inc/b.f90",
+        "inc/mods.f90",
+        "inc/u.f90",
+    ],
+    hdrs = [
+        "inc/b_body.inc",
+        "inc/c_mod.inc",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "modules_and_uses_in_include_files_test",
+    targets = [":fortran_include"],
+)
+
+# Scenario: two sources include the same module file
+# Given shared.inc defining module shk, included by two sources of one target
+# When the library is built
+# Then it is one definition, not a module defined twice
+fortran_library(
+    name = "shared_include",
+    srcs = [
+        "shared/a.f90",
+        "shared/b.f90",
+        "shared/c.f90",
+    ],
+    hdrs = ["shared/shared.inc"],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "one_include_in_two_sources_test",
+    targets = [":shared_include"],
+)
+
+# Scenario: modules inside #include files
+# Given a module defined only in a #include'd file, and a fragment with another extension
+# When the library is built with those files in hdrs
+# Then the included files are read and any extension is accepted in hdrs
+fortran_library(
+    name = "cpp_include",
+    srcs = [
+        "cppinc/a_user.f90",
+        "cppinc/b_mod.F90",
+    ],
+    hdrs = ["cppinc/m_body.inc"],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "fragments",
+    srcs = [
+        "frag/mod.F90",
+        "frag/user.f90",
+    ],
+    hdrs = ["frag/frag.F90"],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "modules_in_cpp_include_files_test",
+    targets = [
+        ":cpp_include",
+        ":fragments",
+    ],
+)
+
+# Scenario: a byte-order mark and non-breaking spaces
+# Given a source starting with a UTF-8 BOM, and a use indented with non-breaking spaces
+# When the libraries are built
+# Then both statements are read
+fortran_library(
+    name = "bom",
+    srcs = [
+        "bom/a.f90",
+        "bom/b.f90",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "nbsp",
+    srcs = [
+        "nbsp/a.f90",
+        "nbsp/z.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "bom_and_nbsp_test",
+    targets = [
+        ":bom",
+        ":nbsp",
+    ],
+)
+
+# Scenario: fixed-form columns past 72
+# Given a card deck with sequence numbers in columns 73-80
+# And a tab-format line whose text runs past column 72
+# When the library is built
+# Then nothing past column 72 is read, counting a leading tab as columns 1-6
+fortran_library(
+    name = "col73",
+    srcs = [
+        "col73/a.f",
+        "col73/b.f90",
+        "col73/ta.f",
+        "col73/tb.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "fixed_form_sequence_field_test",
+    targets = [":col73"],
+)
+
+# Scenario: statement labels
+# Given `10 use la` in free form, a label field in fixed form and a 0 in column 6
+# When the library is built
+# Then the labelled statements are read
+fortran_library(
+    name = "labels",
+    srcs = [
+        "label/a.f90",
+        "label/b.f90",
+        "label/c.f",
+        "label/d.f",
+        "label/e.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "labeled_statements_test",
+    targets = [":labels"],
+)
+
+# Scenario: unusual but valid names
+# Given a module named procedure, a continued MODULE PROCEDURE list, and a module named dol$a
+# When the libraries are built
+# Then each module is found and nothing else is taken for one
+fortran_library(
+    name = "named_procedure",
+    srcs = [
+        "proc/g.f",
+        "proc/procedure.f90",
+        "proc/user.f90",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "dollar",
+    srcs = [
+        "dollar/a.f90",
+        "dollar/b.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "unusual_module_names_test",
+    targets = [
+        ":dollar",
+        ":named_procedure",
+    ],
+)
+
+# Scenario: long lines and short statements
+# Given a use past column 4100, and lines like `i = 1;; j = 2`
+# When the libraries are built
+# Then the use is read and the short statements do no harm
+fortran_library(
+    name = "long_line",
+    srcs = [
+        "long/a.f90",
+        "long/b.f90",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "short_segments",
+    srcs = [
+        "semi/a.f90",
+        "semi/b.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "long_and_short_statements_test",
+    targets = [
+        ":long_line",
+        ":short_segments",
+    ],
+)
+
+# Scenario: statements that start with `use` but are not USE
+# Given a variable named use, a construct named use, and fixed-form `USE FUL(1) = 2`
+# When the library is built
+# Then none of them is read as a use
+fortran_library(
+    name = "use_shaped",
+    srcs = [
+        "usevar/a.f90",
+        "usevar/b.f90",
+        "usevar/c.f",
+        "usevar/d.f",
+        "usevar/e.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "use_named_entities_test",
+    targets = [":use_shaped"],
+)
+
+# Scenario: preprocessor lines
+# Given a line split with a backslash, a #warning holding `; use`, and a multi-line #define
+# When the library is built
+# Then the split line is joined and directive lines are not read as code
+fortran_library(
+    name = "splice",
+    srcs = [
+        "splice/a.F90",
+        "splice/b.f90",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "directives",
+    srcs = [
+        "directive/new.f90",
+        "directive/old.F90",
+        "directive/wrap.F90",
+        "directive/wrap2.F90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "preprocessor_lines_test",
+    targets = [
+        ":directives",
+        ":splice",
+    ],
+)
+
+# Scenario: fixed-form comment and continuation columns
+# Given a `%LIST; USE PC` line, and a continuation marked with ! in column 6
+# When the libraries are built
+# Then the % line is a comment and the ! line continues the statement
+fortran_library(
+    name = "percent",
+    srcs = [
+        "pct/b.f",
+        "pct/c.f",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "col6_bang",
+    srcs = [
+        "bang6/b.f",
+        "bang6/c.f",
+        "bang6/d.f",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "fixed_form_columns_test",
+    targets = [
+        ":col6_bang",
+        ":percent",
+    ],
+)
+
+# Scenario: quotes and blanks in source paths
+# Given a source named it's.f90, and sources in a directory with a blank
+# When the libraries are built
+# Then the order file and the param files keep each path whole
+fortran_library(
+    name = "quoted_paths",
+    srcs = [
+        "quote/it's.f90",
+        "quote/z.f90",
+    ],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "blank_path",
+    srcs = [
+        "blank dir/a.f90",
+        "blank dir/b.f90",
+    ],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "odd_source_paths_test",
+    targets = [
+        ":blank_path",
+        ":quoted_paths",
+    ],
+)
+
+# Scenario: -Werror in copts
+# Given libraries with and without modules, built with copts = ["-Werror"]
+# When they are built
+# Then the module pass has nothing to warn about
+fortran_library(
+    name = "werror_modules",
+    srcs = [
+        "werror/kinds.f90",
+        "werror/solver.f90",
+    ],
+    copts = ["-Werror"],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "werror_no_modules",
+    srcs = [
+        "werror2/x.f90",
+        "werror2/y.f90",
+    ],
+    copts = ["-Werror"],
+    tags = ["manual"],
+)
+
+build_test(
+    name = "module_pass_with_werror_test",
+    targets = [
+        ":werror_modules",
+        ":werror_no_modules",
+    ],
+)
+
+# Scenario: a form switch in copts
+# Given a .f90 module with a line past column 72, and copts = ["-ffixed-form"]
+# When a program using the module runs
+# Then the exported module matches the object: the .f90 was read in free form both times
+fortran_library(
+    name = "form_switch",
+    srcs = [
+        "form/drive.f",
+        "form/nekmod.f90",
+    ],
+    copts = ["-ffixed-form"],
+    tags = ["manual"],
+)
+
+fortran_test(
+    name = "copts_form_switch_matches_objects_test",
+    srcs = ["form/p.f90"],
+    deps = [":form_switch"],
+)
+
+# Scenario: defines with the preprocessor turned on in copts
+# Given a lowercase .f module with #ifdef MPI, copts = ["-cpp"] and defines = ["MPI"]
+# When a program using the MPI branch runs
+# Then the module pass and the compile of that source both saw the define
+fortran_library(
+    name = "defines_scope",
+    srcs = [
+        "defs/comm.f",
+        "defs/timer.F",
+    ],
+    copts = ["-cpp"],
+    defines = ["MPI"],
+    tags = ["manual"],
+)
+
+fortran_test(
+    name = "defines_reach_both_passes_test",
+    srcs = ["defs/p.f90"],
+    deps = [":defines_scope"],
+)
+
+# Scenario: a module named like one of a dependency
+# Given a library whose cfg module shadows a dep's cfg module
+# When a program using the library runs
+# Then the library's sources saw their own cfg
+fortran_library(
+    name = "shadow_dep",
+    srcs = ["shadow/dep/cfg.f90"],
+    tags = ["manual"],
+)
+
+fortran_library(
+    name = "shadow_tgt",
+    srcs = [
+        "shadow/tgt/cfg.f90",
+        "shadow/tgt/checks.f90",
+    ],
+    tags = ["manual"],
+    deps = [":shadow_dep"],
+)
+
+fortran_test(
+    name = "own_modules_shadow_deps_test",
+    srcs = ["shadow/p.f90"],
+    deps = [":shadow_tgt"],
+)
+
+# Scenario: the scanner's own errors and limits
+# Given cycles, duplicates and a chain of 3000 modules
+# When the scanner runs on them directly
+# Then it orders the chain without running out of stack, and names the files in its errors
+sh_test(
+    name = "module_order_test",
+    srcs = ["module_order_test.sh"],
+    args = ["$(rlocationpath //fortran/private/tools:module_order)"],
+    data = [
+        "//fortran/private/tools:module_order",
+        "@bazel_tools//tools/bash/runfiles",
+    ],
+)

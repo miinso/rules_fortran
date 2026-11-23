@@ -1,0 +1,8 @@
+      MODULE CSUB2
+      INTERFACE
+      MODULE SUBROUTINE
+     &  S2(X)
+      INTEGER X
+      END SUBROUTINE
+      END INTERFACE
+      END MODULE

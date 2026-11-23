@@ -1,0 +1,3 @@
+      MODULE LC
+   20 USE LA
+      END MODULE LC
