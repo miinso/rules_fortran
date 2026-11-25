@@ -8,11 +8,6 @@ exports_files([
 ])
 
 filegroup(
-    name = "all_files",
-    srcs = glob(["**/*"]),
-)
-
-filegroup(
     name = "srcs",
     testonly = True,
     srcs = [
