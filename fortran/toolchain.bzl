@@ -113,11 +113,17 @@ def _fortran_toolchain_impl(ctx):
     # first, so the toolchain's own flags and copts / linkopts can still override it
     min_os = _cc_macos_min_os_flags(ctx, cc_toolchain, feature_configuration)
 
+    # -c fastbuild / dbg / opt; before compiler_flags so the toolchain's own flags and copts win
+    mode_flags = {
+        "dbg": ctx.attr.dbg_compiler_flags,
+        "opt": ctx.attr.opt_compiler_flags,
+    }.get(ctx.var.get("COMPILATION_MODE", "fastbuild"), ctx.attr.fastbuild_compiler_flags)
+
     toolchain_info = FortranToolchainInfo(
         compiler = ctx.file.compiler,
         linker = ctx.file.linker,
         archiver = ctx.file.archiver,
-        compiler_flags = min_os + ctx.attr.compiler_flags,
+        compiler_flags = min_os + mode_flags + ctx.attr.compiler_flags,
         linker_flags = min_os + ctx.attr.linker_flags,
         preprocessor_flag = ctx.attr.preprocessor_flag,
         preprocessor_flags = ctx.attr.preprocessor_flags,
@@ -177,6 +183,14 @@ fortran_toolchain = rule(
             default = [],
             doc = "Default flags to pass to the compiler.",
         ),
+        "dbg_compiler_flags": attr.string_list(
+            default = ["-g"],
+            doc = "Compiler flags added in the dbg compilation mode (-c dbg), ahead of compiler_flags.",
+        ),
+        "fastbuild_compiler_flags": attr.string_list(
+            default = [],
+            doc = "Compiler flags added in the fastbuild compilation mode (the default), ahead of compiler_flags.",
+        ),
         "linker": attr.label(
             mandatory = True,
             allow_single_file = True,
@@ -197,6 +211,10 @@ fortran_toolchain = rule(
             default = "-J{}",
             doc = "Format string for the flag that sets the module output directory. Use {} as placeholder for the path. " +
                   "The compiler must have such a flag: each source writes its .mod files into its own directory.",
+        ),
+        "opt_compiler_flags": attr.string_list(
+            default = ["-O2"],
+            doc = "Compiler flags added in the opt compilation mode (-c opt), ahead of compiler_flags.",
         ),
         "preprocessor_flag": attr.string(
             default = "-cpp",
