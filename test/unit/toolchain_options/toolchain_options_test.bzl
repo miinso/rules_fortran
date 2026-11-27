@@ -66,6 +66,27 @@ toolchain_alias_test = analysistest.make(
     config_settings = _with_toolchain("custom_toolchain"),
 )
 
+def _mode_flags_test(mode, present, absent, toolchain = None):
+    def impl(ctx):
+        env = analysistest.begin(ctx)
+        compile_action = _actions(env, "FortranCompile")
+        for flag in present:
+            assert_argv_contains(env, compile_action, flag)
+        for flag in absent:
+            assert_argv_contains_not(env, compile_action, flag)
+        return analysistest.end(env)
+
+    settings = {"//command_line_option:compilation_mode": mode}
+    if toolchain:
+        settings.update(_with_toolchain(toolchain))
+    return analysistest.make(impl, config_settings = settings)
+
+fastbuild_flags_test = _mode_flags_test("fastbuild", [], ["-O2", "-g"])
+dbg_flags_test = _mode_flags_test("dbg", ["-g"], ["-O2"])
+opt_flags_test = _mode_flags_test("opt", ["-O2"], ["-g"])
+custom_opt_flags_test = _mode_flags_test("opt", ["-custom-opt", "-custom-compile"], ["-O2", "-custom-dbg"], "custom_toolchain")
+custom_dbg_flags_test = _mode_flags_test("dbg", ["-custom-dbg", "-custom-compile"], ["-g", "-custom-opt"], "custom_toolchain")
+
 def toolchain_options_test_suite(name):
     """Test suite for fortran_toolchain options.
 
@@ -79,9 +100,11 @@ def toolchain_options_test_suite(name):
         archiver = "fake_tool.sh",
         compiler = "fake_tool.sh",
         compiler_flags = ["-custom-compile"],
+        dbg_compiler_flags = ["-custom-dbg"],
         linker = "fake_tool.sh",
         linker_flags = ["-custom-link"],
         module_flag_format = "-module={}",
+        opt_compiler_flags = ["-custom-opt"],
         preprocessor_flag = "-fpp",
         preprocessor_flags = ["-DFROM_TOOLCHAIN"],
         tags = ["manual"],
@@ -145,11 +168,61 @@ def toolchain_options_test_suite(name):
         target_under_test = ":current_toolchain",
     )
 
+    # Scenario: the default build adds no optimization or debug flags
+    # Given the registered toolchain
+    # When a source is compiled in fastbuild mode
+    # Then the compile line has neither -O2 nor -g
+    fastbuild_flags_test(
+        name = "fastbuild_flags_test",
+        target_under_test = ":dep",
+    )
+
+    # Scenario: -c dbg asks for debug info
+    # Given the registered toolchain
+    # When a source is compiled in dbg mode
+    # Then the compile line has -g and no -O2
+    dbg_flags_test(
+        name = "dbg_flags_test",
+        target_under_test = ":dep",
+    )
+
+    # Scenario: -c opt optimizes
+    # Given the registered toolchain
+    # When a source is compiled in opt mode
+    # Then the compile line has -O2 and no -g
+    opt_flags_test(
+        name = "opt_flags_test",
+        target_under_test = ":dep",
+    )
+
+    # Scenario: a toolchain sets its own opt flags
+    # Given a toolchain with opt_compiler_flags and dbg_compiler_flags
+    # When a source is compiled in opt mode
+    # Then its opt flags replace the default and its dbg flags stay out
+    custom_opt_flags_test(
+        name = "custom_opt_flags_test",
+        target_under_test = ":dep",
+    )
+
+    # Scenario: a toolchain sets its own dbg flags
+    # Given a toolchain with opt_compiler_flags and dbg_compiler_flags
+    # When a source is compiled in dbg mode
+    # Then its dbg flags replace the default and its opt flags stay out
+    custom_dbg_flags_test(
+        name = "custom_dbg_flags_test",
+        target_under_test = ":dep",
+    )
+
     native.test_suite(
         name = name,
         tests = [
             ":custom_compile_flags_test",
+            ":custom_dbg_flags_test",
             ":custom_link_flags_test",
+            ":custom_opt_flags_test",
+            ":dbg_flags_test",
+            ":fastbuild_flags_test",
+            ":opt_flags_test",
             ":toolchain_alias_test",
         ],
     )
