@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # one weekly pr for all action bumps
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
